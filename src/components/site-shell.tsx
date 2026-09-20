@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, Mail, Menu, Minus, Phone, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { ChevronDown, LogIn, Mail, Menu, Minus, Phone, Plus, Search, ShoppingBag, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/components/cart-context";
+import { useCustomerAccount } from "@/components/customer-account-context";
 import { useSiteStore } from "@/components/site-store-context";
 import { formatPrice, type CartEntry } from "@/lib/products";
 
@@ -67,10 +68,22 @@ function AnnouncementBar() {
 function CartSheet() {
   const { cart, cartCount, changeQuantity, removeFromCart } = useCart();
   const { resolveCartKey, addOrder } = useSiteStore();
+  const { customer } = useCustomerAccount();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!customer) return;
+    setName((current) => current || customer.name);
+    setPhone((current) => current || customer.phone);
+    setNote((current) => {
+      if (current) return current;
+      const parts = [customer.city, customer.district, customer.address].filter(Boolean);
+      return parts.length ? parts.join(" — ") : current;
+    });
+  }, [customer]);
 
   const entries = Object.keys(cart)
     .map(Number)
@@ -216,44 +229,73 @@ function CartSheet() {
   );
 }
 
+function MobileNav() {
+  const { customer } = useCustomerAccount();
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="shrink-0 md:hidden" aria-label="فتح القائمة">
+          <Menu />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        dir="rtl"
+        className="flex w-1/2 max-w-none flex-col border-l-border bg-background p-0 sm:max-w-none [&>button]:hidden"
+      >
+        <SheetHeader className="space-y-0 border-b border-border/80 px-5 py-5 text-right">
+          <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
+          <SheetDescription className="sr-only">روابط صفحات متجر لوما</SheetDescription>
+          <BrandMark compact />
+        </SheetHeader>
+
+        <nav className="flex flex-1 flex-col gap-1 px-3 py-5">
+          {links.map((item) => (
+            <SheetClose asChild key={item.to}>
+              <Link
+                to={item.to}
+                className="rounded-sm px-3 py-3 text-[15px] text-foreground/90 transition-colors hover:bg-secondary"
+                activeProps={{ className: "bg-secondary text-gold" }}
+                activeOptions={{ exact: item.to === "/" }}
+              >
+                {item.label}
+              </Link>
+            </SheetClose>
+          ))}
+        </nav>
+
+        <div className="mt-auto border-t border-border/80 px-3 py-4">
+          <SheetClose asChild>
+            <Link
+              to="/account"
+              className="flex items-center gap-3 rounded-sm px-3 py-3 text-[15px] transition-colors hover:bg-secondary"
+              activeProps={{ className: "bg-secondary text-gold" }}
+            >
+              {customer ? (
+                <UserRound className="size-4 shrink-0" strokeWidth={1.5} />
+              ) : (
+                <LogIn className="size-4 shrink-0" strokeWidth={1.5} />
+              )}
+              <span>{customer ? "حسابي" : "دخول / حسابي"}</span>
+            </Link>
+          </SheetClose>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function SiteHeader() {
+  const { customer } = useCustomerAccount();
+
   return (
     <>
       <AnnouncementBar />
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-xl">
         <div className="relative mx-auto grid h-14 max-w-[1440px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-5 md:h-16 md:px-10 lg:px-14">
           <div className="flex min-w-0 items-center justify-start gap-1">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0 md:hidden" aria-label="فتح القائمة">
-                  <Menu />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="right"
-                dir="rtl"
-                className="w-[44%] min-w-[180px] max-w-[240px] border-l-border bg-background p-0 [&>button]:hidden"
-              >
-                <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
-                <SheetDescription className="sr-only">روابط صفحات متجر لوما</SheetDescription>
-                <div className="flex items-center gap-2 border-b border-border px-5 py-5">
-                  <BrandMark compact />
-                </div>
-                <nav className="flex flex-col px-5 py-6 text-base">
-                  {links.map((item) => (
-                    <SheetClose asChild key={item.to}>
-                      <Link
-                        to={item.to}
-                        className="border-b border-border py-4"
-                        activeProps={{ className: "text-gold" }}
-                      >
-                        {item.label}
-                      </Link>
-                    </SheetClose>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
+            <MobileNav />
             <nav className="hidden items-center gap-8 text-[13px] text-muted-foreground md:flex lg:gap-11">
               {links.map((item) => (
                 <Link
@@ -276,6 +318,11 @@ function SiteHeader() {
           <div className="col-start-3 flex items-center justify-end gap-1">
             <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="البحث">
               <Search />
+            </Button>
+            <Button asChild variant="ghost" size="icon" aria-label={customer ? "حسابي" : "تسجيل الدخول"}>
+              <Link to="/account">
+                {customer ? <UserRound strokeWidth={1.5} /> : <LogIn strokeWidth={1.5} />}
+              </Link>
             </Button>
             <CartSheet />
           </div>
@@ -312,6 +359,7 @@ function SiteFooter() {
               {item.label}
             </Link>
           ))}
+          <Link to="/account">حسابي</Link>
         </div>
       </div>
       <div className="mx-auto mt-10 flex max-w-[1320px] items-center justify-between border-t border-border pt-6 text-[11px] text-muted-foreground">

@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/components/cart-context";
+import { CustomerAccountProvider } from "@/components/customer-account-context";
 import { SiteStoreProvider } from "@/components/site-store-context";
 
 function NotFoundComponent() {
@@ -128,9 +129,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SiteStoreProvider>
-        <CartProvider>
-          <Outlet />
-        </CartProvider>
+        <CustomerAccountProvider>
+          <CartProvider>
+            <Outlet />
+          </CartProvider>
+        </CustomerAccountProvider>
       </SiteStoreProvider>
     </QueryClientProvider>
   );

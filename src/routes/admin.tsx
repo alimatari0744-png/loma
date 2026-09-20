@@ -676,6 +676,9 @@ function ContentPanel({
       </Section>
 
       <Section title="عن لوما">
+        <p className="mb-5 text-[13px] leading-6 text-muted-foreground">
+          صفحة «عن لوما» نصية فقط — بدون صور جانبية.
+        </p>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="العنوان 1">
             <Input
@@ -768,15 +771,18 @@ function ImagesPanel({
 
   const fields: { key: keyof SiteContent["images"]; label: string }[] = [
     { key: "logo", label: "الشعار" },
-    { key: "hero", label: "صورة الصفحة الرئيسية" },
-    { key: "ritualPads", label: "صورة الروتين (قطن)" },
-    { key: "ritualBottle", label: "صورة الروتين (زجاجة)" },
+    { key: "hero", label: "صورة الصفحة الرئيسية / المجموعة" },
+    { key: "ritualPads", label: "صورة صفحة الروتين (قطن)" },
+    { key: "ritualBottle", label: "صورة صفحة الروتين (زجاجة)" },
   ];
 
   return (
     <div className="space-y-5">
       <div className="flex items-end justify-between gap-3">
-        <PanelHeader title="الصور" subtitle="استبدلي صور الموقع الرئيسية." />
+        <PanelHeader
+          title="الصور"
+          subtitle="صور الصفحة الرئيسية والروتين والشعار فقط — صفحة «عن لوما» بلا صور."
+        />
         <Button variant="luxury" className="h-10 shrink-0 rounded-none px-5" onClick={() => onSave(images)}>
           حفظ الصور
         </Button>
