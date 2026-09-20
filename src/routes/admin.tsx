@@ -74,14 +74,9 @@ function AdminPage() {
             store.loginAdmin(password || "admin");
           }}
         >
-          <div className="mb-8 flex items-center gap-3">
-            <span className="grid size-10 place-items-center border border-gold/40 text-gold">
-              <Sparkles {...iconProps} />
-            </span>
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.22em] text-gold">LOMA</p>
-              <h1 className="text-2xl font-semibold tracking-tight">لوحة التحكم</h1>
-            </div>
+          <div className="mb-8">
+            <p className="text-[11px] font-medium tracking-[0.28em] text-gold">LOMA</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">لوحة التحكم</h1>
           </div>
           <p className="text-sm leading-7 text-muted-foreground">أدخلي أي كلمة مرور أو رقم للدخول.</p>
           <Input
@@ -115,14 +110,9 @@ function AdminPage() {
     <div className="min-h-screen bg-[#f4f1ec] text-foreground" dir="rtl">
       <header className="border-b border-border/70 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center border border-gold/35 text-gold">
-              <Droplets {...iconProps} />
-            </span>
-            <div>
-              <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA</p>
-              <h1 className="text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
-            </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA</p>
+            <h1 className="mt-1 text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
           </div>
           <div className="flex items-center gap-2">
             {savedFlash && (
@@ -148,8 +138,8 @@ function AdminPage() {
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[200px_1fr]">
-        <aside className="h-fit bg-background/80 p-2">
-          <nav className="space-y-0.5">
+        <aside className="h-fit">
+          <nav className="space-y-1">
             {tabs.map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
@@ -158,13 +148,13 @@ function AdminPage() {
                   key={item.id}
                   type="button"
                   onClick={() => setTab(item.id)}
-                  className={`flex w-full items-center gap-3 px-3.5 py-3 text-[13px] transition-colors ${
+                  className={`flex w-full items-center gap-3 border-r-2 px-3 py-2.5 text-[13px] transition-colors ${
                     active
-                      ? "bg-foreground text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                      ? "border-gold bg-background text-foreground"
+                      : "border-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground"
                   }`}
                 >
-                  <Icon strokeWidth={1.25} className="size-[17px]" />
+                  <Icon strokeWidth={1.15} className={`size-4 ${active ? "text-gold" : ""}`} />
                   {item.label}
                 </button>
               );
@@ -272,11 +262,9 @@ function StatCard({
 }) {
   return (
     <div className="bg-background/90 px-5 py-6">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center gap-2.5">
+        <Icon strokeWidth={1.15} className="size-4 text-gold" />
         <span className="text-[12px] text-muted-foreground">{label}</span>
-        <span className="text-gold/80">
-          <Icon strokeWidth={1.2} className="size-4" />
-        </span>
       </div>
       <p className="text-[1.65rem] font-semibold tracking-tight">{value}</p>
     </div>
