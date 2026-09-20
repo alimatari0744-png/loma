@@ -28,7 +28,7 @@ const careHighlights = [
   "لا يترك طبقة دهنية",
 ];
 
-export const products: Product[] = [
+export const defaultProducts: Product[] = [
   {
     id: 1,
     name: "مزيل ميسيلار لطيف",
@@ -153,14 +153,16 @@ export const products: Product[] = [
   },
 ];
 
-export function getProduct(id: number) {
-  return products.find((product) => product.id === id);
+export const products = defaultProducts;
+
+export function getProduct(id: number, list: Product[] = defaultProducts) {
+  return list.find((product) => product.id === id);
 }
 
 export type CartEntry = { key: number; product: Product; variant?: Variant; price: number; label: string };
 
-export function resolveCartKey(key: number): CartEntry | undefined {
-  for (const product of products) {
+export function resolveCartKey(key: number, list: Product[] = defaultProducts): CartEntry | undefined {
+  for (const product of list) {
     if (product.id === key) return { key, product, price: product.price, label: product.size };
     const variant = product.variants?.find((item) => item.id === key);
     if (variant) return { key, product, variant, price: variant.price, label: variant.label };

@@ -2,16 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown, Mail, Menu, Minus, Phone, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/components/cart-context";
-import { formatPrice, resolveCartKey, type CartEntry } from "@/lib/products";
-import lomaMark from "@/assets/loma-mark.png";
-
-const announcements = [
-  "عناية يومية هادئة لبشرة نظيفة ومطمئنة",
-  "إزالة فعّالة للمكياج بلطف على البشرة",
-  "بدون عطر — ومناسب لمنطقة حول العينين",
-];
+import { useSiteStore } from "@/components/site-store-context";
+import { formatPrice, type CartEntry } from "@/lib/products";
 
 const links = [
   { label: "الرئيسية", to: "/" as const },
@@ -21,6 +17,7 @@ const links = [
 ];
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
+  const { content } = useSiteStore();
   return (
     <span className="inline-flex items-center gap-2" dir="ltr" aria-label="LOMA">
       <span
@@ -31,53 +28,189 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
         LOMA
       </span>
       <img
-        src={lomaMark}
+        src={content.images.logo}
         alt=""
-        className={
-          compact
-            ? "size-6 object-contain"
-            : "size-7 object-contain md:size-8"
-        }
+        className={compact ? "size-6 object-contain" : "size-7 object-contain md:size-8"}
       />
     </span>
   );
 }
 
 export function BrandSymbol({ className = "size-8" }: { className?: string }) {
-  return <img src={lomaMark} alt="شعار لوما" className={`object-contain ${className}`} />;
+  const { content } = useSiteStore();
+  return <img src={content.images.logo} alt="شعار لوما" className={`object-contain ${className}`} />;
 }
 
 function AnnouncementBar() {
+  const { content } = useSiteStore();
+  const announcements = content.announcements.length ? content.announcements : ["LOMA"];
   const [index, setIndex] = useState(0);
   useEffect(() => {
-    const interval = window.setInterval(() => setIndex((current) => (current + 1) % announcements.length), 3200);
+    const interval = window.setInterval(
+      () => setIndex((current) => (current + 1) % announcements.length),
+      3200,
+    );
     return () => window.clearInterval(interval);
-  }, []);
-  return <div className="flex min-h-9 items-center justify-center overflow-hidden bg-foreground px-4 py-2 text-center text-[11px] font-medium text-primary-foreground md:text-xs" aria-live="polite"><span key={index} className="animate-fade-in motion-reduce:animate-none">{announcements[index]}</span></div>;
+  }, [announcements.length]);
+  return (
+    <div
+      className="flex min-h-9 items-center justify-center overflow-hidden bg-foreground px-4 py-2 text-center text-[11px] font-medium text-primary-foreground md:text-xs"
+      aria-live="polite"
+    >
+      <span key={index} className="animate-fade-in motion-reduce:animate-none">
+        {announcements[index]}
+      </span>
+    </div>
+  );
 }
 
 function CartSheet() {
   const { cart, cartCount, changeQuantity, removeFromCart } = useCart();
+  const { resolveCartKey, addOrder } = useSiteStore();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
+
   const entries = Object.keys(cart)
     .map(Number)
     .map((key) => resolveCartKey(key))
     .filter((entry): entry is CartEntry => Boolean(entry));
   const total = entries.reduce((sum, entry) => sum + entry.price * (cart[entry.key] ?? 0), 0);
+
+  const checkout = () => {
+    if (!entries.length) return;
+    addOrder({
+      customerName: name.trim() || "عميلة",
+      customerPhone: phone.trim(),
+      customerNote: note.trim(),
+      total,
+      items: entries.map((entry) => ({
+        key: entry.key,
+        productId: entry.product.id,
+        name: entry.product.name,
+        label: entry.label,
+        price: entry.price,
+        quantity: cart[entry.key] ?? 1,
+        image: entry.product.image,
+      })),
+    });
+    entries.forEach((entry) => removeFromCart(entry.key));
+    setName("");
+    setPhone("");
+    setNote("");
+    setDone(true);
+    window.setTimeout(() => setDone(false), 2500);
+  };
+
   return (
     <Sheet>
-      <SheetTrigger asChild><Button variant="ghost" size="icon" className="relative" aria-label="سلة التسوق"><ShoppingBag />{cartCount > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-[18px] place-items-center rounded-full bg-gold text-[9px] text-gold-foreground">{cartCount}</span>}</Button></SheetTrigger>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative" aria-label="سلة التسوق">
+          <ShoppingBag />
+          {cartCount > 0 && (
+            <span className="absolute -left-0.5 -top-0.5 grid size-[18px] place-items-center rounded-full bg-gold text-[9px] text-gold-foreground">
+              {cartCount}
+            </span>
+          )}
+        </Button>
+      </SheetTrigger>
       <SheetContent side="left" dir="rtl" className="flex w-full flex-col bg-background sm:max-w-md">
-        <SheetHeader className="text-right"><SheetTitle className="text-2xl font-semibold">سلة لوما</SheetTitle><SheetDescription>المنتجات التي اخترتها</SheetDescription></SheetHeader>
+        <SheetHeader className="text-right">
+          <SheetTitle className="text-2xl font-semibold">سلة لوما</SheetTitle>
+          <SheetDescription>المنتجات التي اخترتها</SheetDescription>
+        </SheetHeader>
         <div className="mt-8 flex-1 space-y-5 overflow-auto">
-          {cartCount === 0 ? <div className="grid h-64 place-items-center border-y border-border text-center text-muted-foreground"><div><ShoppingBag className="mx-auto mb-3 size-7" strokeWidth={1.2} /><p>سلتك بانتظار اختياراتك</p></div></div> : entries.map((entry) => (
-            <div key={entry.key} className="flex gap-4 border-b border-border pb-5">
-              <img src={entry.product.image} alt={entry.product.name} className="size-20 object-cover" />
-              <div className="flex min-w-0 flex-1 flex-col justify-between"><div><p className="font-medium">{entry.product.name}</p><p className="text-xs text-muted-foreground">{entry.label} — {formatPrice(entry.price)}</p></div><div className="flex items-center justify-between"><div className="flex items-center border border-border"><Button variant="ghost" size="icon" className="size-7 rounded-none" onClick={() => changeQuantity(entry.key, -1)} aria-label="تقليل الكمية"><Minus /></Button><span className="w-7 text-center text-sm">{cart[entry.key]}</span><Button variant="ghost" size="icon" className="size-7 rounded-none" onClick={() => changeQuantity(entry.key, 1)} aria-label="زيادة الكمية"><Plus /></Button></div><Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={() => removeFromCart(entry.key)} aria-label="حذف المنتج"><Trash2 /></Button></div></div>
+          {cartCount === 0 ? (
+            <div className="grid h-40 place-items-center border-y border-border text-center text-muted-foreground">
+              <div>
+                <ShoppingBag className="mx-auto mb-3 size-7" strokeWidth={1.2} />
+                <p>{done ? "تم استلام طلبك بنجاح" : "سلتك بانتظار اختياراتك"}</p>
+              </div>
             </div>
-          ))}
+          ) : (
+            entries.map((entry) => (
+              <div key={entry.key} className="flex gap-4 border-b border-border pb-5">
+                <img src={entry.product.image} alt={entry.product.name} className="size-20 object-cover" />
+                <div className="flex min-w-0 flex-1 flex-col justify-between">
+                  <div>
+                    <p className="font-medium">{entry.product.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.label} — {formatPrice(entry.price)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center border border-border">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-none"
+                        onClick={() => changeQuantity(entry.key, -1)}
+                        aria-label="تقليل الكمية"
+                      >
+                        <Minus />
+                      </Button>
+                      <span className="w-7 text-center text-sm">{cart[entry.key]}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-none"
+                        onClick={() => changeQuantity(entry.key, 1)}
+                        aria-label="زيادة الكمية"
+                      >
+                        <Plus />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground"
+                      onClick={() => removeFromCart(entry.key)}
+                      aria-label="حذف المنتج"
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          {cartCount > 0 && (
+            <div className="space-y-3 border-t border-border pt-4">
+              <Input
+                className="rounded-none"
+                placeholder="الاسم"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Input
+                className="rounded-none"
+                placeholder="رقم الجوال"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Textarea
+                className="min-h-20 rounded-none"
+                placeholder="ملاحظة (اختياري)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          )}
         </div>
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-5"><span className="text-sm text-muted-foreground">الإجمالي</span><span className="text-lg font-semibold">{formatPrice(total)}</span></div>
-        <Button variant="luxury" size="luxury" className="mt-4 w-full" disabled={cartCount === 0}>إتمام الطلب</Button>
+        <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
+          <span className="text-sm text-muted-foreground">الإجمالي</span>
+          <span className="text-lg font-semibold">{formatPrice(total)}</span>
+        </div>
+        <Button
+          variant="luxury"
+          size="luxury"
+          className="mt-4 w-full"
+          disabled={cartCount === 0}
+          onClick={checkout}
+        >
+          إتمام الطلب
+        </Button>
       </SheetContent>
     </Sheet>
   );
@@ -109,7 +242,11 @@ function SiteHeader() {
                 <nav className="flex flex-col px-5 py-6 text-base">
                   {links.map((item) => (
                     <SheetClose asChild key={item.to}>
-                      <Link to={item.to} className="border-b border-border py-4" activeProps={{ className: "text-gold" }}>
+                      <Link
+                        to={item.to}
+                        className="border-b border-border py-4"
+                        activeProps={{ className: "text-gold" }}
+                      >
                         {item.label}
                       </Link>
                     </SheetClose>
@@ -132,10 +269,7 @@ function SiteHeader() {
             </nav>
           </div>
 
-          <Link
-            to="/"
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-          >
+          <Link to="/" className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
             <BrandMark />
           </Link>
 
@@ -152,9 +286,50 @@ function SiteHeader() {
 }
 
 function SiteFooter() {
-  return <footer className="border-t border-border bg-card px-5 py-12 md:px-10 lg:px-14"><div className="mx-auto grid max-w-[1320px] gap-10 md:grid-cols-[1fr_auto] md:items-start"><div><BrandMark compact /><p className="mt-3 text-xs text-muted-foreground">CLEAN MAKEUP. CALM SKIN.</p><div className="mt-7 grid gap-3 text-sm"><div className="flex items-center gap-3"><Mail className="size-4 text-gold" aria-hidden="true" /><span className="text-muted-foreground">البريد الإلكتروني:</span><span>سيتم الإضافة لاحقًا</span></div><div className="flex items-center gap-3"><Phone className="size-4 text-gold" aria-hidden="true" /><span className="text-muted-foreground">رقم الهاتف:</span><span>سيتم الإضافة لاحقًا</span></div></div></div><div className="flex flex-wrap gap-6 text-sm text-muted-foreground md:justify-end">{links.slice(1).map((item) => <Link key={item.to} to={item.to}>{item.label}</Link>)}</div></div><div className="mx-auto mt-10 flex max-w-[1320px] items-center justify-between border-t border-border pt-6 text-[11px] text-muted-foreground"><span>© 2026 LOMA</span><a href="#top" className="flex items-center gap-2">إلى الأعلى <ChevronDown className="size-3 rotate-180" /></a></div></footer>;
+  const { content } = useSiteStore();
+  return (
+    <footer className="border-t border-border bg-card px-5 py-12 md:px-10 lg:px-14">
+      <div className="mx-auto grid max-w-[1320px] gap-10 md:grid-cols-[1fr_auto] md:items-start">
+        <div>
+          <BrandMark compact />
+          <p className="mt-3 text-xs text-muted-foreground">{content.footer.tagline}</p>
+          <div className="mt-7 grid gap-3 text-sm">
+            <div className="flex items-center gap-3">
+              <Mail className="size-4 text-gold" aria-hidden="true" />
+              <span className="text-muted-foreground">البريد الإلكتروني:</span>
+              <span>{content.footer.email}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="size-4 text-gold" aria-hidden="true" />
+              <span className="text-muted-foreground">رقم الهاتف:</span>
+              <span>{content.footer.phone}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-6 text-sm text-muted-foreground md:justify-end">
+          {links.slice(1).map((item) => (
+            <Link key={item.to} to={item.to}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <div className="mx-auto mt-10 flex max-w-[1320px] items-center justify-between border-t border-border pt-6 text-[11px] text-muted-foreground">
+        <span>© 2026 LOMA</span>
+        <a href="#top" className="flex items-center gap-2">
+          إلى الأعلى <ChevronDown className="size-3 rotate-180" />
+        </a>
+      </div>
+    </footer>
+  );
 }
 
 export function SiteShell({ children }: { children: ReactNode }) {
-  return <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-background text-foreground"><SiteHeader />{children}<SiteFooter /></main>;
+  return (
+    <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-background text-foreground">
+      <SiteHeader />
+      {children}
+      <SiteFooter />
+    </main>
+  );
 }

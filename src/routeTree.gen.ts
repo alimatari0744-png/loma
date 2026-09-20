@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as RitualRouteImport } from './routes/ritual'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RitualRoute = RitualRouteImport.update({
@@ -44,6 +50,7 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/': typeof ProductsIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products': typeof ProductsIndexRoute
@@ -59,21 +67,31 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/': typeof ProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/ritual' | '/products/$id' | '/products/'
+  fullPaths:
+    '/' | '/about' | '/admin' | '/ritual' | '/products/$id' | '/products/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/ritual' | '/products/$id' | '/products'
-  id: '__root__' | '/' | '/about' | '/ritual' | '/products/$id' | '/products/'
+  to: '/' | '/about' | '/admin' | '/ritual' | '/products/$id' | '/products'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/ritual'
+    | '/products/$id'
+    | '/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   RitualRoute: typeof RitualRoute
   ProductsIdRoute: typeof ProductsIdRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -93,6 +111,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ritual': {
@@ -122,6 +147,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   RitualRoute: RitualRoute,
   ProductsIdRoute: ProductsIdRoute,
   ProductsIndexRoute: ProductsIndexRoute,
