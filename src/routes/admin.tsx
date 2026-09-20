@@ -1,16 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
-  ImageIcon,
-  LayoutDashboard,
+  ArrowUpRight,
+  Check,
+  Droplets,
+  ExternalLink,
+  FileText,
+  Image as ImageLucide,
+  LayoutGrid,
   LogOut,
   Package,
+  Pencil,
   Plus,
-  Save,
   ShoppingBag,
+  Sparkles,
   Trash2,
-  Type,
-  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,15 +37,17 @@ export const Route = createFileRoute("/admin")({
 type Tab = "overview" | "products" | "orders" | "content" | "images";
 
 const tabs: { id: Tab; label: string; icon: typeof Package }[] = [
-  { id: "overview", label: "نظرة عامة", icon: LayoutDashboard },
+  { id: "overview", label: "نظرة عامة", icon: LayoutGrid },
   { id: "products", label: "المنتجات", icon: Package },
   { id: "orders", label: "الطلبات", icon: ShoppingBag },
-  { id: "content", label: "النصوص", icon: Type },
-  { id: "images", label: "الصور", icon: ImageIcon },
+  { id: "content", label: "النصوص", icon: FileText },
+  { id: "images", label: "الصور", icon: ImageLucide },
 ];
 
 const statuses: OrderStatus[] = ["جديد", "قيد التجهيز", "تم الشحن", "مكتمل", "ملغي"];
 const categories: Product["category"][] = ["مزيل المكياج", "الوسادات", "الباقات"];
+
+const iconProps = { strokeWidth: 1.25 as const, className: "size-[18px]" };
 
 function AdminPage() {
   const store = useSiteStore();
@@ -52,7 +58,7 @@ function AdminPage() {
 
   if (!store.ready) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background text-muted-foreground" dir="rtl">
+      <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground" dir="rtl">
         جاري التحميل…
       </div>
     );
@@ -62,30 +68,38 @@ function AdminPage() {
     return (
       <div className="grid min-h-screen place-items-center bg-background px-5" dir="rtl">
         <form
-          className="w-full max-w-md border border-border bg-card p-8"
+          className="w-full max-w-md bg-card px-8 py-10 shadow-[0_20px_60px_rgba(44,42,38,0.06)]"
           onSubmit={(event) => {
             event.preventDefault();
             store.loginAdmin(password || "admin");
           }}
         >
-          <p className="text-xs font-semibold text-gold">LOMA ADMIN</p>
-          <h1 className="mt-3 text-3xl font-semibold">لوحة التحكم</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            أدخلي أي كلمة مرور أو رقم للدخول مباشرة.
-          </p>
+          <div className="mb-8 flex items-center gap-3">
+            <span className="grid size-10 place-items-center border border-gold/40 text-gold">
+              <Sparkles {...iconProps} />
+            </span>
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.22em] text-gold">LOMA</p>
+              <h1 className="text-2xl font-semibold tracking-tight">لوحة التحكم</h1>
+            </div>
+          </div>
+          <p className="text-sm leading-7 text-muted-foreground">أدخلي أي كلمة مرور أو رقم للدخول.</p>
           <Input
-            className="mt-6 rounded-none"
+            className="mt-6 h-12 rounded-none border-border/80 bg-background"
             type="password"
             placeholder="كلمة المرور"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoFocus
           />
-          <Button type="submit" variant="luxury" size="luxury" className="mt-4 w-full rounded-none">
+          <Button type="submit" variant="luxury" size="luxury" className="mt-4 h-12 w-full rounded-none">
             دخول
           </Button>
-          <Link to="/" className="mt-6 block text-center text-sm text-muted-foreground hover:text-foreground">
-            العودة للموقع
+          <Link
+            to="/"
+            className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            العودة للموقع <ExternalLink className="size-3.5" strokeWidth={1.25} />
           </Link>
         </form>
       </div>
@@ -99,71 +113,67 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f1ec] text-foreground" dir="rtl">
-      <header className="border-b border-border bg-background">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-          <div>
-            <p className="text-xs font-semibold text-gold">LOMA</p>
-            <h1 className="text-xl font-semibold">لوحة التحكم</h1>
+      <header className="border-b border-border/70 bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center border border-gold/35 text-gold">
+              <Droplets {...iconProps} />
+            </span>
+            <div>
+              <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA</p>
+              <h1 className="text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {savedFlash && <span className="text-sm text-gold">تم الحفظ</span>}
-            <Button asChild variant="outline" className="rounded-none">
-              <Link to="/">عرض الموقع</Link>
+            {savedFlash && (
+              <span className="hidden items-center gap-1.5 text-sm text-gold sm:inline-flex">
+                <Check className="size-3.5" strokeWidth={1.5} /> تم الحفظ
+              </span>
+            )}
+            <Button asChild variant="outline" className="h-10 rounded-none border-border/80 px-4 text-sm">
+              <Link to="/">
+                عرض الموقع <ArrowUpRight className="size-3.5" strokeWidth={1.25} />
+              </Link>
             </Button>
-            <Button variant="ghost" className="rounded-none" onClick={store.logoutAdmin}>
-              <LogOut className="size-4" /> خروج
+            <Button
+              variant="ghost"
+              className="h-10 rounded-none px-3 text-muted-foreground hover:text-foreground"
+              onClick={store.logoutAdmin}
+            >
+              <LogOut className="size-4" strokeWidth={1.25} />
+              <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[220px_1fr]">
-        <aside className="h-fit border border-border bg-background p-2">
-          {tabs.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={`flex w-full items-center gap-3 px-3 py-3 text-sm transition-colors ${
-                  tab === item.id ? "bg-foreground text-primary-foreground" : "hover:bg-secondary"
-                }`}
-              >
-                <Icon className="size-4" />
-                {item.label}
-              </button>
-            );
-          })}
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[200px_1fr]">
+        <aside className="h-fit bg-background/80 p-2">
+          <nav className="space-y-0.5">
+            {tabs.map((item) => {
+              const Icon = item.icon;
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTab(item.id)}
+                  className={`flex w-full items-center gap-3 px-3.5 py-3 text-[13px] transition-colors ${
+                    active
+                      ? "bg-foreground text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                  }`}
+                >
+                  <Icon strokeWidth={1.25} className="size-[17px]" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
         </aside>
 
-        <main className="min-w-0 space-y-6">
-          {tab === "overview" && (
-            <OverviewPanel
-              onReset={() => {
-                if (confirm("إعادة ضبط كل البيانات للافتراضي؟")) {
-                  store.resetAll();
-                  flashSave();
-                }
-              }}
-              onExport={() => {
-                const blob = new Blob([JSON.stringify(store.exportData(), null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `loma-backup-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              onImport={async (file) => {
-                const text = await file.text();
-                store.importData(JSON.parse(text));
-                flashSave();
-              }}
-            />
-          )}
+        <main className="min-w-0 space-y-5">
+          {tab === "overview" && <OverviewPanel />}
 
           {tab === "products" && (
             <ProductsPanel
@@ -228,15 +238,7 @@ function AdminPage() {
   );
 }
 
-function OverviewPanel({
-  onReset,
-  onExport,
-  onImport,
-}: {
-  onReset: () => void;
-  onExport: () => void;
-  onImport: (file: File) => void;
-}) {
+function OverviewPanel() {
   const { products, orders } = useSiteStore();
   const newOrders = orders.filter((order) => order.status === "جديد").length;
   const revenue = orders
@@ -244,47 +246,39 @@ function OverviewPanel({
     .reduce((sum, order) => sum + order.total, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <PanelHeader title="نظرة عامة" subtitle="ملخص سريع لحالة المتجر اليوم." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="المنتجات" value={String(products.length)} />
-        <StatCard label="الطلبات الجديدة" value={String(newOrders)} />
-        <StatCard label="إجمالي المبيعات" value={formatPrice(revenue)} />
+        <StatCard icon={Package} label="المنتجات" value={String(products.length)} />
+        <StatCard icon={ShoppingBag} label="طلبات جديدة" value={String(newOrders)} />
+        <StatCard icon={Sparkles} label="إجمالي المبيعات" value={formatPrice(revenue)} />
       </div>
-      <section className="border border-border bg-background p-5">
-        <h2 className="text-lg font-semibold">نسخ احتياطي</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          البيانات تُحفظ في هذا المتصفح. صدّري نسخة للاحتفاظ بها أو انقليها لجهاز آخر.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="luxury" className="rounded-none" onClick={onExport}>
-            تصدير JSON
-          </Button>
-          <label className="inline-flex cursor-pointer items-center gap-2 border border-border px-4 py-2 text-sm">
-            <Upload className="size-4" /> استيراد JSON
-            <input
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onImport(file);
-              }}
-            />
-          </label>
-          <Button variant="outline" className="rounded-none text-destructive" onClick={onReset}>
-            إعادة الضبط
-          </Button>
-        </div>
-      </section>
+      <div className="bg-background/80 px-6 py-8 text-sm leading-7 text-muted-foreground">
+        من القائمة الجانبية يمكنك تعديل المنتجات، متابعة الطلبات، وتحديث النصوص والصور مباشرة على
+        الموقع.
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Package;
+}) {
   return (
-    <div className="border border-border bg-background p-5">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+    <div className="bg-background/90 px-5 py-6">
+      <div className="mb-5 flex items-center justify-between">
+        <span className="text-[12px] text-muted-foreground">{label}</span>
+        <span className="text-gold/80">
+          <Icon strokeWidth={1.2} className="size-4" />
+        </span>
+      </div>
+      <p className="text-[1.65rem] font-semibold tracking-tight">{value}</p>
     </div>
   );
 }
@@ -307,45 +301,45 @@ function ProductsPanel({
   onCancel: () => void;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">المنتجات ({products.length})</h2>
-        <Button variant="luxury" className="rounded-none" onClick={onCreate}>
-          <Plus className="size-4" /> منتج جديد
+    <div className="space-y-5">
+      <div className="flex items-end justify-between gap-3">
+        <PanelHeader title="المنتجات" subtitle={`${products.length} منتج في المجموعة.`} />
+        <Button variant="luxury" className="h-10 shrink-0 rounded-none px-4" onClick={onCreate}>
+          <Plus className="size-4" strokeWidth={1.25} /> منتج جديد
         </Button>
       </div>
 
       {editing && (
-            <ProductEditor
-              key={editing.id}
-              product={editing}
-              onSave={onSave}
-              onCancel={onCancel}
-            />
-          )}
+        <ProductEditor key={editing.id} product={editing} onSave={onSave} onCancel={onCancel} />
+      )}
 
       <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.id} className="flex gap-4 border border-border bg-background p-3">
-            <img src={product.image} alt="" className="size-20 object-cover" />
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">{product.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {product.size} — {formatPrice(product.price)} — {product.category}
+          <div key={product.id} className="flex gap-4 bg-background/90 p-3.5">
+            <img src={product.image} alt="" className="size-[4.5rem] object-cover" />
+            <div className="min-w-0 flex-1 self-center">
+              <p className="font-medium tracking-tight">{product.name}</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                {product.size} · {formatPrice(product.price)} · {product.category}
               </p>
-              {product.badge && <p className="mt-1 text-xs text-gold">{product.badge}</p>}
+              {product.badge && <p className="mt-1.5 text-[11px] tracking-wide text-gold">{product.badge}</p>}
             </div>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" size="sm" className="rounded-none" onClick={() => onEdit(product)}>
-                تعديل
+            <div className="flex flex-col justify-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-none border-border/70 px-3"
+                onClick={() => onEdit(product)}
+              >
+                <Pencil className="size-3.5" strokeWidth={1.25} /> تعديل
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-none text-destructive"
+                className="h-9 rounded-none text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(product.id)}
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-3.5" strokeWidth={1.25} /> حذف
               </Button>
             </div>
           </div>
@@ -382,7 +376,7 @@ function ProductEditor({
 
   return (
     <form
-      className="space-y-4 border border-border bg-background p-5"
+      className="space-y-5 bg-background px-5 py-6"
       onSubmit={(event: FormEvent) => {
         event.preventDefault();
         onSave({
@@ -390,24 +384,27 @@ function ProductEditor({
           contents: (Array.isArray(draft.contents) ? draft.contents : String(draft.contents).split("\n"))
             .map((s) => String(s).trim())
             .filter(Boolean),
-          highlights: (Array.isArray(draft.highlights) ? draft.highlights : String(draft.highlights).split("\n"))
+          highlights: (Array.isArray(draft.highlights)
+            ? draft.highlights
+            : String(draft.highlights).split("\n")
+          )
             .map((s) => String(s).trim())
             .filter(Boolean),
           gallery: draft.gallery.length ? draft.gallery : [draft.image],
         });
       }}
     >
-      <h3 className="font-semibold">تعديل المنتج #{draft.id}</h3>
-      <div className="grid gap-3 md:grid-cols-2">
+      <h3 className="text-base font-semibold tracking-tight">تعديل المنتج</h3>
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="الاسم">
-          <Input className="rounded-none" value={draft.name} onChange={(e) => setField("name", e.target.value)} />
+          <Input className="h-11 rounded-none" value={draft.name} onChange={(e) => setField("name", e.target.value)} />
         </Field>
         <Field label="الحجم / التفاصيل">
-          <Input className="rounded-none" value={draft.size} onChange={(e) => setField("size", e.target.value)} />
+          <Input className="h-11 rounded-none" value={draft.size} onChange={(e) => setField("size", e.target.value)} />
         </Field>
         <Field label="السعر">
           <Input
-            className="rounded-none"
+            className="h-11 rounded-none"
             type="number"
             value={draft.price}
             onChange={(e) => setField("price", Number(e.target.value))}
@@ -415,7 +412,7 @@ function ProductEditor({
         </Field>
         <Field label="التصنيف">
           <select
-            className="h-10 w-full border border-input bg-background px-3 text-sm"
+            className="h-11 w-full border border-input bg-background px-3 text-sm"
             value={draft.category}
             onChange={(e) => setField("category", e.target.value as Product["category"])}
           >
@@ -428,13 +425,13 @@ function ProductEditor({
         </Field>
         <Field label="شارة (اختياري)">
           <Input
-            className="rounded-none"
+            className="h-11 rounded-none"
             value={draft.badge ?? ""}
             onChange={(e) => setField("badge", e.target.value || undefined)}
           />
         </Field>
         <Field label="ملاحظة قصيرة">
-          <Input className="rounded-none" value={draft.note} onChange={(e) => setField("note", e.target.value)} />
+          <Input className="h-11 rounded-none" value={draft.note} onChange={(e) => setField("note", e.target.value)} />
         </Field>
       </div>
       <Field label="الوصف">
@@ -444,7 +441,7 @@ function ProductEditor({
           onChange={(e) => setField("description", e.target.value)}
         />
       </Field>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="المحتويات (سطر لكل عنصر)">
           <Textarea
             className="min-h-24 rounded-none"
@@ -461,16 +458,21 @@ function ProductEditor({
         </Field>
       </div>
       <Field label="صورة المنتج">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <img src={draft.image} alt="" className="size-24 object-cover" />
-          <Input type="file" accept="image/*" className="rounded-none" onChange={(e) => onImage(e.target.files?.[0])} />
+          <Input
+            type="file"
+            accept="image/*"
+            className="max-w-xs rounded-none"
+            onChange={(e) => onImage(e.target.files?.[0])}
+          />
         </div>
       </Field>
-      <div className="flex gap-2">
-        <Button type="submit" variant="luxury" className="rounded-none">
-          <Save className="size-4" /> حفظ المنتج
+      <div className="flex gap-2 pt-1">
+        <Button type="submit" variant="luxury" className="h-10 rounded-none px-5">
+          حفظ المنتج
         </Button>
-        <Button type="button" variant="outline" className="rounded-none" onClick={onCancel}>
+        <Button type="button" variant="outline" className="h-10 rounded-none px-5" onClick={onCancel}>
           إلغاء
         </Button>
       </div>
@@ -489,57 +491,67 @@ function OrdersPanel({
 }) {
   if (orders.length === 0) {
     return (
-      <div className="border border-border bg-background p-10 text-center text-muted-foreground">
-        لا توجد طلبات بعد. ستظهر هنا عند إتمام الشراء من السلة.
+      <div className="space-y-5">
+        <PanelHeader title="الطلبات" subtitle="تظهر هنا عند إتمام الشراء من السلة." />
+        <div className="bg-background/80 px-6 py-16 text-center text-sm text-muted-foreground">
+          لا توجد طلبات بعد.
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {orders.map((order) => (
-        <article key={order.id} className="border border-border bg-background p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold">{order.id}</p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(order.createdAt).toLocaleString("ar-SA")} — {order.customerName || "بدون اسم"} —{" "}
-                {order.customerPhone || "بدون هاتف"}
-              </p>
+    <div className="space-y-5">
+      <PanelHeader title="الطلبات" subtitle={`${orders.length} طلب مسجّل.`} />
+      <div className="space-y-3">
+        {orders.map((order) => (
+          <article key={order.id} className="bg-background/90 px-5 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold tracking-tight">{order.id}</p>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {new Date(order.createdAt).toLocaleString("ar-SA")} · {order.customerName || "بدون اسم"} ·{" "}
+                  {order.customerPhone || "بدون هاتف"}
+                </p>
+              </div>
+              <p className="text-base font-semibold text-gold">{formatPrice(order.total)}</p>
             </div>
-            <p className="font-semibold text-gold">{formatPrice(order.total)}</p>
-          </div>
-          <ul className="mt-4 space-y-2 text-sm">
-            {order.items.map((item) => (
-              <li key={`${order.id}-${item.key}`} className="flex justify-between gap-3">
-                <span>
-                  {item.name} ({item.label}) × {item.quantity}
-                </span>
-                <span>{formatPrice(item.price * item.quantity)}</span>
-              </li>
-            ))}
-          </ul>
-          {order.customerNote && (
-            <p className="mt-3 text-sm text-muted-foreground">ملاحظة: {order.customerNote}</p>
-          )}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <select
-              className="h-10 border border-input bg-background px-3 text-sm"
-              value={order.status}
-              onChange={(e) => onStatus(order.id, e.target.value as OrderStatus)}
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
+            <ul className="mt-4 space-y-2 border-t border-border/60 pt-4 text-[13px]">
+              {order.items.map((item) => (
+                <li key={`${order.id}-${item.key}`} className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">
+                    {item.name} ({item.label}) × {item.quantity}
+                  </span>
+                  <span>{formatPrice(item.price * item.quantity)}</span>
+                </li>
               ))}
-            </select>
-            <Button variant="ghost" className="rounded-none text-destructive" onClick={() => onDelete(order.id)}>
-              حذف
-            </Button>
-          </div>
-        </article>
-      ))}
+            </ul>
+            {order.customerNote && (
+              <p className="mt-3 text-[13px] text-muted-foreground">ملاحظة: {order.customerNote}</p>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <select
+                className="h-10 border border-input bg-background px-3 text-sm"
+                value={order.status}
+                onChange={(e) => onStatus(order.id, e.target.value as OrderStatus)}
+              >
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="ghost"
+                className="h-10 rounded-none text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(order.id)}
+              >
+                <Trash2 className="size-3.5" strokeWidth={1.25} /> حذف
+              </Button>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -568,12 +580,19 @@ function ContentPanel({
 
   return (
     <form
-      className="space-y-6"
+      className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSave(draft);
       }}
     >
+      <div className="flex items-end justify-between gap-3">
+        <PanelHeader title="النصوص" subtitle="عدّلي محتوى الصفحات مباشرة." />
+        <Button type="submit" variant="luxury" className="h-10 shrink-0 rounded-none px-5">
+          حفظ النصوص
+        </Button>
+      </div>
+
       <Section title="شريط الإعلانات">
         <Textarea
           className="min-h-24 rounded-none"
@@ -583,90 +602,166 @@ function ContentPanel({
       </Section>
 
       <Section title="الصفحة الرئيسية — البطل">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <Field label="السطر العلوي">
-            <Input className="rounded-none" value={draft.hero.eyebrow} onChange={(e) => setPath("hero.eyebrow", e.target.value)} />
-          </Field>
-          <Field label="العنوان 1">
-            <Input className="rounded-none" value={draft.hero.title} onChange={(e) => setPath("hero.title", e.target.value)} />
-          </Field>
-          <Field label="العنوان 2">
-            <Input className="rounded-none" value={draft.hero.titleLine2} onChange={(e) => setPath("hero.titleLine2", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.eyebrow}
+              onChange={(e) => setPath("hero.eyebrow", e.target.value)}
+            />
           </Field>
           <Field label="زر الدعوة">
-            <Input className="rounded-none" value={draft.hero.cta} onChange={(e) => setPath("hero.cta", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.cta}
+              onChange={(e) => setPath("hero.cta", e.target.value)}
+            />
+          </Field>
+          <Field label="العنوان 1">
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.title}
+              onChange={(e) => setPath("hero.title", e.target.value)}
+            />
+          </Field>
+          <Field label="العنوان 2">
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.titleLine2}
+              onChange={(e) => setPath("hero.titleLine2", e.target.value)}
+            />
           </Field>
         </div>
         <Field label="الوصف">
-          <Textarea className="mt-3 min-h-24 rounded-none" value={draft.hero.subtitle} onChange={(e) => setPath("hero.subtitle", e.target.value)} />
+          <Textarea
+            className="mt-4 min-h-24 rounded-none"
+            value={draft.hero.subtitle}
+            onChange={(e) => setPath("hero.subtitle", e.target.value)}
+          />
         </Field>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field label="ميزة 1 — العنوان">
-            <Input className="rounded-none" value={draft.hero.feature1Title} onChange={(e) => setPath("hero.feature1Title", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.feature1Title}
+              onChange={(e) => setPath("hero.feature1Title", e.target.value)}
+            />
           </Field>
           <Field label="ميزة 1 — النص">
-            <Input className="rounded-none" value={draft.hero.feature1Text} onChange={(e) => setPath("hero.feature1Text", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.feature1Text}
+              onChange={(e) => setPath("hero.feature1Text", e.target.value)}
+            />
           </Field>
           <Field label="ميزة 2 — العنوان">
-            <Input className="rounded-none" value={draft.hero.feature2Title} onChange={(e) => setPath("hero.feature2Title", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.feature2Title}
+              onChange={(e) => setPath("hero.feature2Title", e.target.value)}
+            />
           </Field>
           <Field label="ميزة 2 — النص">
-            <Input className="rounded-none" value={draft.hero.feature2Text} onChange={(e) => setPath("hero.feature2Text", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.hero.feature2Text}
+              onChange={(e) => setPath("hero.feature2Text", e.target.value)}
+            />
           </Field>
         </div>
       </Section>
 
       <Section title="قسم المنتجات في الرئيسية">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <Field label="التسمية">
-            <Input className="rounded-none" value={draft.homeProducts.kicker} onChange={(e) => setPath("homeProducts.kicker", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.homeProducts.kicker}
+              onChange={(e) => setPath("homeProducts.kicker", e.target.value)}
+            />
           </Field>
           <Field label="العنوان">
-            <Input className="rounded-none" value={draft.homeProducts.title} onChange={(e) => setPath("homeProducts.title", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.homeProducts.title}
+              onChange={(e) => setPath("homeProducts.title", e.target.value)}
+            />
           </Field>
         </div>
       </Section>
 
       <Section title="عن لوما">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <Field label="العنوان 1">
-            <Input className="rounded-none" value={draft.about.title} onChange={(e) => setPath("about.title", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.about.title}
+              onChange={(e) => setPath("about.title", e.target.value)}
+            />
           </Field>
           <Field label="العنوان 2">
-            <Input className="rounded-none" value={draft.about.titleLine2} onChange={(e) => setPath("about.titleLine2", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.about.titleLine2}
+              onChange={(e) => setPath("about.titleLine2", e.target.value)}
+            />
           </Field>
         </div>
         <Field label="المقدمة">
-          <Textarea className="mt-3 min-h-20 rounded-none" value={draft.about.intro} onChange={(e) => setPath("about.intro", e.target.value)} />
+          <Textarea
+            className="mt-4 min-h-20 rounded-none"
+            value={draft.about.intro}
+            onChange={(e) => setPath("about.intro", e.target.value)}
+          />
         </Field>
         <Field label="الفقرة 1">
-          <Textarea className="mt-3 min-h-20 rounded-none" value={draft.about.p1} onChange={(e) => setPath("about.p1", e.target.value)} />
+          <Textarea
+            className="mt-4 min-h-20 rounded-none"
+            value={draft.about.p1}
+            onChange={(e) => setPath("about.p1", e.target.value)}
+          />
         </Field>
         <Field label="الفقرة 2">
-          <Textarea className="mt-3 min-h-20 rounded-none" value={draft.about.p2} onChange={(e) => setPath("about.p2", e.target.value)} />
+          <Textarea
+            className="mt-4 min-h-20 rounded-none"
+            value={draft.about.p2}
+            onChange={(e) => setPath("about.p2", e.target.value)}
+          />
         </Field>
         <Field label="الفقرة 3">
-          <Textarea className="mt-3 min-h-20 rounded-none" value={draft.about.p3} onChange={(e) => setPath("about.p3", e.target.value)} />
+          <Textarea
+            className="mt-4 min-h-20 rounded-none"
+            value={draft.about.p3}
+            onChange={(e) => setPath("about.p3", e.target.value)}
+          />
         </Field>
       </Section>
 
       <Section title="التذييل والتواصل">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <Field label="الشعار الفرعي">
-            <Input className="rounded-none" value={draft.footer.tagline} onChange={(e) => setPath("footer.tagline", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.footer.tagline}
+              onChange={(e) => setPath("footer.tagline", e.target.value)}
+            />
           </Field>
           <Field label="البريد">
-            <Input className="rounded-none" value={draft.footer.email} onChange={(e) => setPath("footer.email", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.footer.email}
+              onChange={(e) => setPath("footer.email", e.target.value)}
+            />
           </Field>
           <Field label="الهاتف">
-            <Input className="rounded-none" value={draft.footer.phone} onChange={(e) => setPath("footer.phone", e.target.value)} />
+            <Input
+              className="h-11 rounded-none"
+              value={draft.footer.phone}
+              onChange={(e) => setPath("footer.phone", e.target.value)}
+            />
           </Field>
         </div>
       </Section>
-
-      <Button type="submit" variant="luxury" className="rounded-none">
-        <Save className="size-4" /> حفظ النصوص
-      </Button>
     </form>
   );
 }
@@ -694,32 +789,44 @@ function ImagesPanel({
   ];
 
   return (
-    <div className="space-y-4">
-      {fields.map((field) => (
-        <div key={field.key} className="border border-border bg-background p-4">
-          <p className="mb-3 font-medium">{field.label}</p>
-          <div className="flex flex-wrap items-center gap-4">
-            <img src={images[field.key]} alt="" className="h-28 w-28 object-cover" />
+    <div className="space-y-5">
+      <div className="flex items-end justify-between gap-3">
+        <PanelHeader title="الصور" subtitle="استبدلي صور الموقع الرئيسية." />
+        <Button variant="luxury" className="h-10 shrink-0 rounded-none px-5" onClick={() => onSave(images)}>
+          حفظ الصور
+        </Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {fields.map((field) => (
+          <div key={field.key} className="bg-background/90 p-4">
+            <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
+            <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
             <Input
               type="file"
               accept="image/*"
-              className="max-w-xs rounded-none"
+              className="rounded-none"
               onChange={(e) => upload(field.key, e.target.files?.[0])}
             />
           </div>
-        </div>
-      ))}
-      <Button variant="luxury" className="rounded-none" onClick={() => onSave(images)}>
-        <Save className="size-4" /> حفظ الصور
-      </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div>
+      <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
     </div>
   );
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-border bg-background p-5">
-      <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+    <section className="bg-background/90 px-5 py-6">
+      <h3 className="mb-5 text-[13px] font-medium tracking-wide text-gold">{title}</h3>
       {children}
     </section>
   );
@@ -727,7 +834,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block space-y-2 text-sm">
+    <label className="block space-y-2 text-[13px]">
       <span className="text-muted-foreground">{label}</span>
       {children}
     </label>
