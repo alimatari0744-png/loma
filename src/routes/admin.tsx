@@ -3,7 +3,6 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
-  Droplets,
   ExternalLink,
   FileText,
   Image as ImageLucide,
@@ -46,8 +45,6 @@ const tabs: { id: Tab; label: string; icon: typeof Package }[] = [
 
 const statuses: OrderStatus[] = ["جديد", "قيد التجهيز", "تم الشحن", "مكتمل", "ملغي"];
 const categories: Product["category"][] = ["مزيل المكياج", "الوسادات", "الباقات"];
-
-const iconProps = { strokeWidth: 1.25 as const, className: "size-[18px]" };
 
 function AdminPage() {
   const store = useSiteStore();
