@@ -4,34 +4,48 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { Product } from "@/lib/products";
 import { getProduct as findProduct, resolveCartKey as resolveKey } from "@/lib/products";
-import { createDefaultSiteData, loadSiteData, saveSiteData, type Order, type OrderStatus, type SiteContent, type SiteData } from "@/lib/site-data";
+import { loadRemoteSiteData, persistSiteData, type PersistResult } from "@/lib/cms";
+import {
+  createDefaultSiteData,
+  loadSiteData,
+  saveSiteData,
+  type Order,
+  type OrderStatus,
+  type SiteContent,
+  type SiteData,
+} from "@/lib/site-data";
 import { getSupabase, isAdminEmail, translateAuthError } from "@/lib/supabase";
 
 type AuthResult = { ok: true } | { ok: false; error: string };
 
 type SiteStoreValue = {
   ready: boolean;
+  saving: boolean;
+  lastSavedAt: string | null;
+  persistError: string | null;
+  persistRemote: boolean;
   products: Product[];
   orders: Order[];
   content: SiteContent;
   isAdmin: boolean;
   loginAdmin: (email: string, password: string) => Promise<AuthResult>;
   logoutAdmin: () => void;
-  setProducts: (products: Product[]) => void;
-  upsertProduct: (product: Product) => void;
-  deleteProduct: (id: number) => void;
-  setContent: (content: SiteContent) => void;
-  patchContent: (patch: Partial<SiteContent>) => void;
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "status"> & { status?: OrderStatus }) => Order;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
-  deleteOrder: (id: string) => void;
-  resetAll: () => void;
-  importData: (data: SiteData) => void;
+  setProducts: (products: Product[]) => Promise<PersistResult>;
+  upsertProduct: (product: Product) => Promise<PersistResult>;
+  deleteProduct: (id: number) => Promise<PersistResult>;
+  setContent: (content: SiteContent) => Promise<PersistResult>;
+  patchContent: (patch: Partial<SiteContent>) => Promise<PersistResult>;
+  addOrder: (order: Omit<Order, "id" | "createdAt" | "status"> & { status?: OrderStatus }) => Promise<Order>;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<PersistResult>;
+  deleteOrder: (id: string) => Promise<PersistResult>;
+  resetAll: () => Promise<PersistResult>;
+  importData: (data: SiteData) => Promise<PersistResult>;
   exportData: () => SiteData;
   getProduct: (id: number) => Product | undefined;
   resolveCartKey: (key: number) => ReturnType<typeof resolveKey>;
@@ -43,37 +57,71 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<SiteData>(() => createDefaultSiteData());
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [persistError, setPersistError] = useState<string | null>(null);
+  const [persistRemote, setPersistRemote] = useState(false);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   useEffect(() => {
-    setData(loadSiteData());
-    const supabase = getSupabase();
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        setIsAdmin(isAdminEmail(data.session?.user?.email));
-      })
-      .finally(() => setReady(true));
+    let cancelled = false;
+    const boot = async () => {
+      const local = loadSiteData();
+      const remote = await loadRemoteSiteData();
+      if (cancelled) return;
+      const next = remote ?? local;
+      setData(next);
+      if (remote) {
+        try {
+          saveSiteData(remote);
+        } catch {
+          /* ignore quota */
+        }
+        setPersistRemote(true);
+      }
+      const supabase = getSupabase();
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!cancelled) setIsAdmin(isAdminEmail(sessionData.session?.user?.email));
+      setReady(true);
+    };
+    void boot();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = getSupabase().auth.onAuthStateChange((_event, session) => {
       setIsAdmin(isAdminEmail(session?.user?.email));
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  useEffect(() => {
-    if (!ready) return;
-    saveSiteData(data);
-  }, [data, ready]);
-
-  const update = useCallback((updater: (current: SiteData) => SiteData) => {
-    setData((current) => updater(current));
+  const commit = useCallback(async (next: SiteData): Promise<PersistResult> => {
+    setData(next);
+    dataRef.current = next;
+    setSaving(true);
+    const result = await persistSiteData(next);
+    setSaving(false);
+    setPersistRemote(result.remote);
+    setPersistError(result.error ?? null);
+    if (result.ok) setLastSavedAt(new Date().toISOString());
+    return result;
   }, []);
+
+  const update = useCallback(
+    async (updater: (current: SiteData) => SiteData) => commit(updater(dataRef.current)),
+    [commit],
+  );
 
   const value = useMemo<SiteStoreValue>(
     () => ({
       ready,
+      saving,
+      lastSavedAt,
+      persistError,
+      persistRemote,
       products: data.products,
       orders: data.orders,
       content: data.content,
@@ -85,14 +133,14 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
         if (!isAdminEmail(email)) {
           return { ok: false, error: "هذا الحساب غير مصرح له بدخول لوحة التحكم" };
         }
-        const { data, error } = await getSupabase().auth.signInWithPassword({
+        const { data: authData, error } = await getSupabase().auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
         });
-        if (error || !data.user) {
+        if (error || !authData.user) {
           return { ok: false, error: translateAuthError(error?.message) };
         }
-        if (!isAdminEmail(data.user.email)) {
+        if (!isAdminEmail(authData.user.email)) {
           await getSupabase().auth.signOut();
           return { ok: false, error: "هذا الحساب غير مصرح له بدخول لوحة التحكم" };
         }
@@ -127,7 +175,7 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
             images: { ...current.content.images, ...(patch.images ?? {}) },
           },
         })),
-      addOrder: (orderInput) => {
+      addOrder: async (orderInput) => {
         const order: Order = {
           id: `ORD-${Date.now()}`,
           createdAt: new Date().toISOString(),
@@ -138,7 +186,7 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
           total: orderInput.total,
           items: orderInput.items,
         };
-        update((current) => ({ ...current, orders: [order, ...current.orders] }));
+        await update((current) => ({ ...current, orders: [order, ...current.orders] }));
         return order;
       },
       updateOrderStatus: (id, status) =>
@@ -151,13 +199,13 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
           ...current,
           orders: current.orders.filter((order) => order.id !== id),
         })),
-      resetAll: () => setData(createDefaultSiteData()),
-      importData: (incoming) => setData(incoming),
+      resetAll: () => commit(createDefaultSiteData()),
+      importData: (incoming) => commit(incoming),
       exportData: () => data,
       getProduct: (id) => findProduct(id, data.products),
       resolveCartKey: (key) => resolveKey(key, data.products),
     }),
-    [data, isAdmin, ready, update],
+    [commit, data, isAdmin, lastSavedAt, persistError, persistRemote, ready, saving, update],
   );
 
   return <SiteStoreContext.Provider value={value}>{children}</SiteStoreContext.Provider>;

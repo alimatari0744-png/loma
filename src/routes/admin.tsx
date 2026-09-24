@@ -117,25 +117,43 @@ function AdminPage() {
     );
   }
 
-  const flashSave = () => {
+  const flashSave = async (result?: { ok: boolean; remote?: boolean; error?: string }) => {
+    if (result && !result.ok) return;
     setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1600);
+    window.setTimeout(() => setSavedFlash(false), 1800);
   };
 
+  const saveLabel = store.saving
+    ? "جارٍ الحفظ على الموقع…"
+    : savedFlash
+      ? store.persistRemote
+        ? "تم الحفظ على الموقع"
+        : "حُفظ على هذا الجهاز فقط"
+      : store.persistError
+        ? store.persistError
+        : store.lastSavedAt
+          ? store.persistRemote
+            ? "متصل — التعديلات تظهر للزوار"
+            : "غير متصل بالخادم"
+          : "جاهز للتعديل";
+
   return (
-    <div className="min-h-screen bg-[#f4f1ec] text-foreground" dir="rtl">
-      <header className="border-b border-border/70 bg-background/90 backdrop-blur-md">
+    <div className="min-h-screen bg-[#f3efe7] text-foreground" dir="rtl">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA</p>
+            <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA ADMIN</p>
             <h1 className="mt-1 text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
           </div>
           <div className="flex items-center gap-2">
-            {savedFlash && (
-              <span className="hidden items-center gap-1.5 text-sm text-gold sm:inline-flex">
-                <Check className="size-3.5" strokeWidth={1.5} /> تم الحفظ
-              </span>
-            )}
+            <span
+              className={`hidden max-w-[280px] truncate text-sm sm:inline-flex ${
+                store.persistError ? "text-destructive" : "text-gold"
+              }`}
+            >
+              <Check className="ml-1.5 size-3.5 shrink-0" strokeWidth={1.5} />
+              {saveLabel}
+            </span>
             <Button asChild variant="outline" className="h-10 rounded-none border-border/80 px-4 text-sm">
               <Link to="/">
                 عرض الموقع <ArrowUpRight className="size-3.5" strokeWidth={1.25} />
@@ -153,25 +171,36 @@ function AdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[200px_1fr]">
-        <aside className="h-fit">
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[220px_1fr]">
+        <aside className="h-fit border border-border/70 bg-background p-3">
           <nav className="space-y-1">
             {tabs.map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
+              const count =
+                item.id === "products"
+                  ? store.products.length
+                  : item.id === "orders"
+                    ? store.orders.length
+                    : null;
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setTab(item.id)}
-                  className={`flex w-full items-center gap-3 border-r-2 px-3 py-2.5 text-[13px] transition-colors ${
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-[13px] transition-colors ${
                     active
-                      ? "border-gold bg-background text-foreground"
-                      : "border-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
-                  <Icon strokeWidth={1.15} className={`size-4 ${active ? "text-gold" : ""}`} />
-                  {item.label}
+                  <Icon strokeWidth={1.15} className="size-4" />
+                  <span className="flex-1 text-right">{item.label}</span>
+                  {count !== null && (
+                    <span className={`text-[11px] ${active ? "text-background/70" : "text-muted-foreground"}`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -190,17 +219,16 @@ function AdminPage() {
                 const nextId = Math.max(0, ...store.products.map((p) => p.id)) + 1;
                 setEditing(emptyProduct(nextId));
               }}
-              onDelete={(id) => {
-                if (confirm("حذف هذا المنتج؟")) {
-                  store.deleteProduct(id);
-                  if (editing?.id === id) setEditing(null);
-                  flashSave();
-                }
+              onDelete={async (id) => {
+                if (!confirm("حذف هذا المنتج من الموقع؟")) return;
+                const result = await store.deleteProduct(id);
+                if (editing?.id === id) setEditing(null);
+                await flashSave(result);
               }}
-              onSave={(product) => {
-                store.upsertProduct(product);
-                setEditing(null);
-                flashSave();
+              onSave={async (product) => {
+                const result = await store.upsertProduct(product);
+                if (result.ok) setEditing(null);
+                await flashSave(result);
               }}
               onCancel={() => setEditing(null)}
             />
@@ -209,12 +237,12 @@ function AdminPage() {
           {tab === "orders" && (
             <OrdersPanel
               orders={store.orders}
-              onStatus={store.updateOrderStatus}
-              onDelete={(id) => {
-                if (confirm("حذف الطلب؟")) {
-                  store.deleteOrder(id);
-                  flashSave();
-                }
+              onStatus={async (id, status) => {
+                await flashSave(await store.updateOrderStatus(id, status));
+              }}
+              onDelete={async (id) => {
+                if (!confirm("حذف هذا الطلب؟")) return;
+                await flashSave(await store.deleteOrder(id));
               }}
             />
           )}
@@ -222,9 +250,8 @@ function AdminPage() {
           {tab === "content" && (
             <ContentPanel
               content={store.content}
-              onSave={(content) => {
-                store.setContent(content);
-                flashSave();
+              onSave={async (content) => {
+                await flashSave(await store.setContent(content));
               }}
             />
           )}
@@ -232,9 +259,8 @@ function AdminPage() {
           {tab === "images" && (
             <ImagesPanel
               content={store.content}
-              onSave={(images) => {
-                store.patchContent({ images });
-                flashSave();
+              onSave={async (images) => {
+                await flashSave(await store.patchContent({ images }));
               }}
             />
           )}
@@ -250,18 +276,35 @@ function OverviewPanel() {
   const revenue = orders
     .filter((order) => order.status !== "ملغي")
     .reduce((sum, order) => sum + order.total, 0);
+  const recent = orders.slice(0, 4);
 
   return (
     <div className="space-y-5">
-      <PanelHeader title="نظرة عامة" subtitle="ملخص سريع لحالة المتجر اليوم." />
+      <PanelHeader title="نظرة عامة" subtitle="كل تعديل هنا يُحفظ ويظهر مباشرة على واجهة المتجر." />
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={Package} label="المنتجات" value={String(products.length)} />
         <StatCard icon={ShoppingBag} label="طلبات جديدة" value={String(newOrders)} />
         <StatCard icon={Sparkles} label="إجمالي المبيعات" value={formatPrice(revenue)} />
       </div>
-      <div className="bg-background/80 px-6 py-8 text-sm leading-7 text-muted-foreground">
-        من القائمة الجانبية يمكنك تعديل المنتجات، متابعة الطلبات، وتحديث النصوص والصور مباشرة على
-        الموقع.
+      <div className="border border-border/70 bg-background px-6 py-6">
+        <h3 className="text-sm font-semibold">آخر الطلبات</h3>
+        {recent.length === 0 ? (
+          <p className="mt-4 text-sm leading-7 text-muted-foreground">
+            لا توجد طلبات بعد. عند إتمام الشراء من السلة سيظهر الطلب هنا ويمكن تغيير حالته أو حذفه.
+          </p>
+        ) : (
+          <div className="mt-4 divide-y divide-border/70">
+            {recent.map((order) => (
+              <div key={order.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <div>
+                  <p className="font-medium">{order.id}</p>
+                  <p className="text-muted-foreground">{order.customerName || "عميلة"} · {order.status}</p>
+                </div>
+                <span className="text-gold">{formatPrice(order.total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -277,7 +320,7 @@ function StatCard({
   icon: typeof Package;
 }) {
   return (
-    <div className="bg-background/90 px-5 py-6">
+    <div className="border border-border/70 bg-background px-5 py-6">
       <div className="mb-4 flex items-center gap-2.5">
         <Icon strokeWidth={1.15} className="size-4 text-gold" />
         <span className="text-[12px] text-muted-foreground">{label}</span>
@@ -300,8 +343,8 @@ function ProductsPanel({
   editing: Product | null;
   onEdit: (product: Product) => void;
   onCreate: () => void;
-  onDelete: (id: number) => void;
-  onSave: (product: Product) => void;
+  onDelete: (id: number) => void | Promise<void>;
+  onSave: (product: Product) => void | Promise<void>;
   onCancel: () => void;
 }) {
   return (
@@ -319,7 +362,7 @@ function ProductsPanel({
 
       <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.id} className="flex gap-4 bg-background/90 p-3.5">
+          <div key={product.id} className="flex gap-4 border border-border/70 bg-background p-3.5">
             <img src={product.image} alt="" className="size-[4.5rem] object-cover" />
             <div className="min-w-0 flex-1 self-center">
               <p className="font-medium tracking-tight">{product.name}</p>
@@ -359,10 +402,11 @@ function ProductEditor({
   onCancel,
 }: {
   product: Product;
-  onSave: (product: Product) => void;
+  onSave: (product: Product) => void | Promise<void>;
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState<Product>(product);
+  const { saving } = useSiteStore();
 
   const setField = <K extends keyof Product>(key: K, value: Product[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -380,10 +424,10 @@ function ProductEditor({
 
   return (
     <form
-      className="space-y-5 bg-background px-5 py-6"
-      onSubmit={(event: FormEvent) => {
+      className="space-y-5 border border-border/70 bg-background px-5 py-6"
+      onSubmit={async (event: FormEvent) => {
         event.preventDefault();
-        onSave({
+        await onSave({
           ...draft,
           contents: (Array.isArray(draft.contents) ? draft.contents : String(draft.contents).split("\n"))
             .map((s) => String(s).trim())
@@ -473,8 +517,8 @@ function ProductEditor({
         </div>
       </Field>
       <div className="flex gap-2 pt-1">
-        <Button type="submit" variant="luxury" className="h-10 rounded-none px-5">
-          حفظ المنتج
+        <Button type="submit" variant="luxury" className="h-10 rounded-none px-5" disabled={saving}>
+          {saving ? "جارٍ الحفظ…" : "حفظ المنتج"}
         </Button>
         <Button type="button" variant="outline" className="h-10 rounded-none px-5" onClick={onCancel}>
           إلغاء
@@ -490,14 +534,14 @@ function OrdersPanel({
   onDelete,
 }: {
   orders: ReturnType<typeof useSiteStore>["orders"];
-  onStatus: (id: string, status: OrderStatus) => void;
-  onDelete: (id: string) => void;
+  onStatus: (id: string, status: OrderStatus) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
 }) {
   if (orders.length === 0) {
     return (
       <div className="space-y-5">
         <PanelHeader title="الطلبات" subtitle="تظهر هنا عند إتمام الشراء من السلة." />
-        <div className="bg-background/80 px-6 py-16 text-center text-sm text-muted-foreground">
+        <div className="border border-border/70 bg-background px-6 py-16 text-center text-sm text-muted-foreground">
           لا توجد طلبات بعد.
         </div>
       </div>
@@ -509,7 +553,7 @@ function OrdersPanel({
       <PanelHeader title="الطلبات" subtitle={`${orders.length} طلب مسجّل.`} />
       <div className="space-y-3">
         {orders.map((order) => (
-          <article key={order.id} className="bg-background/90 px-5 py-5">
+          <article key={order.id} className="border border-border/70 bg-background px-5 py-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold tracking-tight">{order.id}</p>
@@ -565,9 +609,10 @@ function ContentPanel({
   onSave,
 }: {
   content: SiteContent;
-  onSave: (content: SiteContent) => void;
+  onSave: (content: SiteContent) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(content);
+  const { saving } = useSiteStore();
 
   const setPath = (path: string, value: string | string[]) => {
     setDraft((current) => {
@@ -585,15 +630,15 @@ function ContentPanel({
   return (
     <form
       className="space-y-5"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        onSave(draft);
+        await onSave(draft);
       }}
     >
       <div className="flex items-end justify-between gap-3">
         <PanelHeader title="النصوص" subtitle="عدّلي محتوى الصفحات مباشرة." />
-        <Button type="submit" variant="luxury" className="h-10 shrink-0 rounded-none px-5">
-          حفظ النصوص
+        <Button type="submit" variant="luxury" className="h-10 shrink-0 rounded-none px-5" disabled={saving}>
+          {saving ? "جارٍ الحفظ…" : "حفظ النصوص"}
         </Button>
       </div>
 
@@ -778,9 +823,10 @@ function ImagesPanel({
   onSave,
 }: {
   content: SiteContent;
-  onSave: (images: SiteContent["images"]) => void;
+  onSave: (images: SiteContent["images"]) => void | Promise<void>;
 }) {
   const [images, setImages] = useState(content.images);
+  const { saving } = useSiteStore();
 
   const upload = async (key: keyof SiteContent["images"], file?: File | null) => {
     if (!file) return;
@@ -802,13 +848,18 @@ function ImagesPanel({
           title="الصور"
           subtitle="صور الصفحة الرئيسية والروتين والشعار فقط — صفحة «عن لوما» بلا صور."
         />
-        <Button variant="luxury" className="h-10 shrink-0 rounded-none px-5" onClick={() => onSave(images)}>
-          حفظ الصور
+        <Button
+          variant="luxury"
+          className="h-10 shrink-0 rounded-none px-5"
+          disabled={saving}
+          onClick={() => onSave(images)}
+        >
+          {saving ? "جارٍ الحفظ…" : "حفظ الصور"}
         </Button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {fields.map((field) => (
-          <div key={field.key} className="bg-background/90 p-4">
+          <div key={field.key} className="border border-border/70 bg-background p-4">
             <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
             <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
             <Input
@@ -835,7 +886,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="bg-background/90 px-5 py-6">
+    <section className="border border-border/70 bg-background px-5 py-6">
       <h3 className="mb-5 text-[13px] font-medium tracking-wide text-gold">{title}</h3>
       {children}
     </section>

@@ -91,9 +91,9 @@ function CartSheet() {
     .filter((entry): entry is CartEntry => Boolean(entry));
   const total = entries.reduce((sum, entry) => sum + entry.price * (cart[entry.key] ?? 0), 0);
 
-  const checkout = () => {
+  const checkout = async () => {
     if (!entries.length) return;
-    addOrder({
+    await addOrder({
       customerName: name.trim() || "عميلة",
       customerPhone: phone.trim(),
       customerNote: note.trim(),

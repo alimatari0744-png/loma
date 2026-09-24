@@ -77,3 +77,40 @@ drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
   before update on public.profiles
   for each row execute function public.set_profiles_updated_at();
+
+-- CMS bucket writes: only the approved admin email.
+drop policy if exists "cms_public_read" on storage.objects;
+create policy "cms_public_read"
+  on storage.objects for select
+  using (bucket_id = 'loma-cms');
+
+drop policy if exists "cms_admin_insert" on storage.objects;
+create policy "cms_admin_insert"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'loma-cms'
+    and auth.jwt() ->> 'email' = '74abonaif@gmail.com'
+  );
+
+drop policy if exists "cms_admin_update" on storage.objects;
+create policy "cms_admin_update"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'loma-cms'
+    and auth.jwt() ->> 'email' = '74abonaif@gmail.com'
+  )
+  with check (
+    bucket_id = 'loma-cms'
+    and auth.jwt() ->> 'email' = '74abonaif@gmail.com'
+  );
+
+drop policy if exists "cms_admin_delete" on storage.objects;
+create policy "cms_admin_delete"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'loma-cms'
+    and auth.jwt() ->> 'email' = '74abonaif@gmail.com'
+  );
