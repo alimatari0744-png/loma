@@ -3,6 +3,16 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
+export function getAdminEmail() {
+  return ((import.meta.env.VITE_ADMIN_EMAIL as string | undefined) || "74abonaif@gmail.com")
+    .trim()
+    .toLowerCase();
+}
+
+export function isAdminEmail(email?: string | null) {
+  return Boolean(email && email.trim().toLowerCase() === getAdminEmail());
+}
+
 export function getSiteUrl() {
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;

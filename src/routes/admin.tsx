@@ -48,7 +48,10 @@ const categories: Product["category"][] = ["مزيل المكياج", "الوس�
 
 function AdminPage() {
   const store = useSiteStore();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [editing, setEditing] = useState<Product | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -66,26 +69,42 @@ function AdminPage() {
       <div className="grid min-h-screen place-items-center bg-background px-5" dir="rtl">
         <form
           className="w-full max-w-md bg-card px-8 py-10 shadow-[0_20px_60px_rgba(44,42,38,0.06)]"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            store.loginAdmin(password || "admin");
+            setError("");
+            setBusy(true);
+            const result = await store.loginAdmin(email, password);
+            setBusy(false);
+            if (!result.ok) setError(result.error);
           }}
         >
           <div className="mb-8">
             <p className="text-[11px] font-medium tracking-[0.28em] text-gold">LOMA</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">لوحة التحكم</h1>
           </div>
-          <p className="text-sm leading-7 text-muted-foreground">أدخلي أي كلمة مرور أو رقم للدخول.</p>
+          <p className="text-sm leading-7 text-muted-foreground">الدخول مخصص لحساب الإدارة المعتمد فقط.</p>
           <Input
             className="mt-6 h-12 rounded-none border-border/80 bg-background"
+            type="email"
+            placeholder="البريد الإلكتروني"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="username"
+            autoFocus
+            required
+          />
+          <Input
+            className="mt-3 h-12 rounded-none border-border/80 bg-background"
             type="password"
             placeholder="كلمة المرور"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            autoFocus
+            autoComplete="current-password"
+            required
           />
-          <Button type="submit" variant="luxury" size="luxury" className="mt-4 h-12 w-full rounded-none">
-            دخول
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+          <Button type="submit" variant="luxury" size="luxury" className="mt-4 h-12 w-full rounded-none" disabled={busy}>
+            {busy ? "جارٍ الدخول…" : "دخول"}
           </Button>
           <Link
             to="/"

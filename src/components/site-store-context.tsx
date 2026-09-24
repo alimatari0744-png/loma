@@ -9,16 +9,10 @@ import {
 } from "react";
 import type { Product } from "@/lib/products";
 import { getProduct as findProduct, resolveCartKey as resolveKey } from "@/lib/products";
-import {
-  AUTH_KEY,
-  createDefaultSiteData,
-  loadSiteData,
-  saveSiteData,
-  type Order,
-  type OrderStatus,
-  type SiteContent,
-  type SiteData,
-} from "@/lib/site-data";
+import { createDefaultSiteData, loadSiteData, saveSiteData, type Order, type OrderStatus, type SiteContent, type SiteData } from "@/lib/site-data";
+import { getSupabase, isAdminEmail, translateAuthError } from "@/lib/supabase";
+
+type AuthResult = { ok: true } | { ok: false; error: string };
 
 type SiteStoreValue = {
   ready: boolean;
@@ -26,7 +20,7 @@ type SiteStoreValue = {
   orders: Order[];
   content: SiteContent;
   isAdmin: boolean;
-  loginAdmin: (password: string) => boolean;
+  loginAdmin: (email: string, password: string) => Promise<AuthResult>;
   logoutAdmin: () => void;
   setProducts: (products: Product[]) => void;
   upsertProduct: (product: Product) => void;
@@ -52,8 +46,20 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setData(loadSiteData());
-    setIsAdmin(sessionStorage.getItem(AUTH_KEY) === "1");
-    setReady(true);
+    const supabase = getSupabase();
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setIsAdmin(isAdminEmail(data.session?.user?.email));
+      })
+      .finally(() => setReady(true));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(isAdminEmail(session?.user?.email));
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -72,14 +78,29 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
       orders: data.orders,
       content: data.content,
       isAdmin,
-      loginAdmin: (password: string) => {
-        if (!password.trim()) return false;
-        sessionStorage.setItem(AUTH_KEY, "1");
+      loginAdmin: async (email, password) => {
+        if (!email.trim() || !password) {
+          return { ok: false, error: "أدخلي البريد وكلمة المرور" };
+        }
+        if (!isAdminEmail(email)) {
+          return { ok: false, error: "هذا الحساب غير مصرح له بدخول لوحة التحكم" };
+        }
+        const { data, error } = await getSupabase().auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (error || !data.user) {
+          return { ok: false, error: translateAuthError(error?.message) };
+        }
+        if (!isAdminEmail(data.user.email)) {
+          await getSupabase().auth.signOut();
+          return { ok: false, error: "هذا الحساب غير مصرح له بدخول لوحة التحكم" };
+        }
         setIsAdmin(true);
-        return true;
+        return { ok: true };
       },
       logoutAdmin: () => {
-        sessionStorage.removeItem(AUTH_KEY);
+        void getSupabase().auth.signOut();
         setIsAdmin(false);
       },
       setProducts: (products) => update((current) => ({ ...current, products })),
