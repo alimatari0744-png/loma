@@ -1,13 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  LogIn,
-  LogOut,
-  MapPin,
-  Package,
-  Shield,
-  UserRound,
-} from "lucide-react";
+import { LogIn, LogOut, MapPin, Package, Shield, UserRound } from "lucide-react";
 import { SiteShell } from "@/components/site-shell";
 import { useCustomerAccount } from "@/components/customer-account-context";
 import { useSiteStore } from "@/components/site-store-context";
@@ -28,6 +21,7 @@ export const Route = createFileRoute("/account")({
 });
 
 type AccountTab = "overview" | "profile" | "orders" | "address" | "security";
+type GuestMode = "login" | "register" | "forgot";
 
 const tabs: { id: AccountTab; label: string; icon: typeof UserRound }[] = [
   { id: "overview", label: "حسابي", icon: UserRound },
@@ -40,10 +34,11 @@ const tabs: { id: AccountTab; label: string; icon: typeof UserRound }[] = [
 function AccountPage() {
   const account = useCustomerAccount();
   const { orders } = useSiteStore();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<GuestMode>("login");
   const [tab, setTab] = useState<AccountTab>("overview");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -81,12 +76,21 @@ function AccountPage() {
   const myOrders = useMemo(() => {
     if (!account.customer) return [];
     const phoneKey = account.customer.phone.replace(/\s+/g, "");
-    return orders.filter((order) => order.customerPhone.replace(/\s+/g, "") === phoneKey);
+    const emailKey = account.customer.email.trim().toLowerCase();
+    return orders.filter((order) => {
+      const orderPhone = order.customerPhone.replace(/\s+/g, "");
+      const orderName = order.customerName.trim();
+      return (
+        (phoneKey && orderPhone === phoneKey) ||
+        (emailKey && order.customerNote.toLowerCase().includes(emailKey)) ||
+        (account.customer && orderName === account.customer.name)
+      );
+    });
   }, [account.customer, orders]);
 
   const flash = (message: string) => {
     setSaved(message);
-    window.setTimeout(() => setSaved(""), 2200);
+    window.setTimeout(() => setSaved(""), 2800);
   };
 
   if (!account.ready) {
@@ -98,18 +102,38 @@ function AccountPage() {
   }
 
   if (!account.customer) {
-    const submit = (event: FormEvent) => {
+    const titles = {
+      login: "تسجيل الدخول",
+      register: "إنشاء حساب",
+      forgot: "نسيت كلمة المرور",
+    };
+
+    const submit = async (event: FormEvent) => {
       event.preventDefault();
       setError("");
+      setSaved("");
       if (mode === "register" && password !== confirmPassword) {
         setError("كلمتا المرور غير متطابقتين");
         return;
       }
+      setBusy(true);
       const result =
         mode === "login"
-          ? account.login(phone, password)
-          : account.register({ name, phone, password, email, city, district, address });
-      if (!result.ok) setError(result.error);
+          ? await account.login(email, password)
+          : mode === "forgot"
+            ? await account.requestPasswordReset(email)
+            : await account.register({ name, email, phone, password, city, district, address });
+      setBusy(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      if (result.message) flash(result.message);
+      if (mode === "register" || mode === "forgot") {
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+      }
     };
 
     return (
@@ -117,76 +141,84 @@ function AccountPage() {
         <section className="px-5 py-14 md:px-10 md:py-20 lg:px-14">
           <div className="mx-auto w-full max-w-md">
             <p className="text-xs font-semibold text-gold">حساب لوما</p>
-            <h1 className="mt-3 text-4xl font-semibold">{mode === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</h1>
+            <h1 className="mt-3 text-4xl font-semibold">{titles[mode]}</h1>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              ادخلي بحسابك لمتابعة الطلبات وتحديث بياناتك وعنوان التوصيل.
+              {mode === "forgot"
+                ? "أدخلي بريدك وسنرسل رابطًا لتعيين كلمة مرور جديدة."
+                : "ادخلي بالبريد وكلمة المرور لمتابعة الطلبات وبياناتك."}
             </p>
 
-            <div className="mt-8 flex border-b border-border text-sm">
-              <button
-                type="button"
-                className={`flex-1 border-b-2 pb-3 transition-colors ${
-                  mode === "login" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground"
-                }`}
-                onClick={() => {
-                  setMode("login");
-                  setError("");
-                }}
-              >
-                دخول
-              </button>
-              <button
-                type="button"
-                className={`flex-1 border-b-2 pb-3 transition-colors ${
-                  mode === "register" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground"
-                }`}
-                onClick={() => {
-                  setMode("register");
-                  setError("");
-                }}
-              >
-                حساب جديد
-              </button>
-            </div>
+            {mode !== "forgot" && (
+              <div className="mt-8 flex border-b border-border text-sm">
+                <button
+                  type="button"
+                  className={`flex-1 border-b-2 pb-3 transition-colors ${
+                    mode === "login" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground"
+                  }`}
+                  onClick={() => {
+                    setMode("login");
+                    setError("");
+                  }}
+                >
+                  دخول
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 border-b-2 pb-3 transition-colors ${
+                    mode === "register"
+                      ? "border-foreground text-foreground"
+                      : "border-transparent text-muted-foreground"
+                  }`}
+                  onClick={() => {
+                    setMode("register");
+                    setError("");
+                  }}
+                >
+                  حساب جديد
+                </button>
+              </div>
+            )}
 
             <form className="mt-8 space-y-4" onSubmit={submit}>
               {mode === "register" && (
-                <>
-                  <Input
-                    className="h-12 rounded-none"
-                    placeholder="الاسم الكامل"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    autoComplete="name"
-                    required
-                  />
-                  <Input
-                    className="h-12 rounded-none"
-                    type="email"
-                    placeholder="البريد الإلكتروني (اختياري)"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                  />
-                </>
+                <Input
+                  className="h-12 rounded-none"
+                  placeholder="الاسم الكامل"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="name"
+                  required
+                />
               )}
               <Input
                 className="h-12 rounded-none"
-                placeholder="رقم الجوال"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                autoComplete="tel"
+                type="email"
+                placeholder="البريد الإلكتروني"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
                 required
               />
-              <Input
-                className="h-12 rounded-none"
-                type="password"
-                placeholder="كلمة المرور"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                required
-              />
+              {mode === "register" && (
+                <Input
+                  className="h-12 rounded-none"
+                  placeholder="رقم الجوال (اختياري)"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  autoComplete="tel"
+                />
+              )}
+              {mode !== "forgot" && (
+                <Input
+                  className="h-12 rounded-none"
+                  type="password"
+                  placeholder="كلمة المرور"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  required
+                />
+              )}
               {mode === "register" && (
                 <>
                   <Input
@@ -219,26 +251,60 @@ function AccountPage() {
                 </>
               )}
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" variant="luxury" size="luxury" className="w-full rounded-none">
-                {mode === "login" ? (
+              {saved && <p className="text-sm text-gold">{saved}</p>}
+              <Button type="submit" variant="luxury" size="luxury" className="w-full rounded-none" disabled={busy}>
+                {busy ? (
+                  "جارٍ التنفيذ…"
+                ) : mode === "login" ? (
                   <>
                     <LogIn className="size-4" /> دخول إلى حسابي
                   </>
+                ) : mode === "forgot" ? (
+                  "إرسال رابط الاستعادة"
                 ) : (
                   "إنشاء الحساب"
                 )}
               </Button>
             </form>
+
+            <div className="mt-5 space-y-2 text-center text-sm text-muted-foreground">
+              {mode === "login" && (
+                <>
+                  <button type="button" className="block w-full hover:text-foreground" onClick={() => setMode("forgot")}>
+                    نسيت كلمة المرور؟
+                  </button>
+                  <button
+                    type="button"
+                    className="block w-full hover:text-foreground"
+                    onClick={async () => {
+                      setError("");
+                      setBusy(true);
+                      const result = await account.resendConfirmation(email);
+                      setBusy(false);
+                      if (!result.ok) setError(result.error);
+                      else flash(result.message ?? "تم الإرسال");
+                    }}
+                  >
+                    إعادة إرسال رسالة التأكيد
+                  </button>
+                </>
+              )}
+              {mode === "forgot" && (
+                <button type="button" className="hover:text-foreground" onClick={() => setMode("login")}>
+                  العودة لتسجيل الدخول
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </SiteShell>
     );
   }
 
-  const saveProfile = (event: FormEvent) => {
+  const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    const result = account.updateProfile({ name, phone, email });
+    const result = await account.updateProfile({ name, phone });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -246,10 +312,10 @@ function AccountPage() {
     flash("تم حفظ بيانات الحساب");
   };
 
-  const saveAddress = (event: FormEvent) => {
+  const saveAddress = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    const result = account.updateProfile({ city, district, address });
+    const result = await account.updateProfile({ city, district, address });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -257,7 +323,7 @@ function AccountPage() {
     flash("تم حفظ العنوان");
   };
 
-  const saveSecurity = (event: FormEvent) => {
+  const saveSecurity = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
     if (!password.trim()) {
@@ -268,7 +334,7 @@ function AccountPage() {
       setError("كلمتا المرور غير متطابقتين");
       return;
     }
-    const result = account.updateProfile({ password });
+    const result = await account.changePassword(password);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -285,14 +351,15 @@ function AccountPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold text-gold">حسابي</p>
-              <h1 className="mt-2 text-4xl font-semibold md:text-5xl">مرحبًا، {account.customer.name}</h1>
-              <p className="mt-3 text-sm text-muted-foreground">{account.customer.phone}</p>
+              <h1 className="mt-2 text-4xl font-semibold md:text-5xl">
+                مرحبًا، {account.customer.name || "عميلة لوما"}
+              </h1>
+              <p className="mt-3 text-sm text-muted-foreground">{account.customer.email}</p>
+              {!account.emailConfirmed && (
+                <p className="mt-2 text-sm text-gold">أكّدي بريدك الإلكتروني لتفعيل كل ميزات الحساب.</p>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              className="shrink-0 gap-2 text-muted-foreground"
-              onClick={() => account.logout()}
-            >
+            <Button variant="ghost" className="shrink-0 gap-2 text-muted-foreground" onClick={() => account.logout()}>
               <LogOut className="size-4" /> تسجيل الخروج
             </Button>
           </div>
@@ -342,7 +409,7 @@ function AccountPage() {
                 className="border border-border bg-card px-5 py-6 text-right transition-colors hover:border-gold/40"
               >
                 <UserRound className="mb-4 size-5 text-gold" strokeWidth={1.5} />
-                <p className="text-base font-semibold">{account.customer.name}</p>
+                <p className="text-base font-semibold">{account.customer.name || "بياناتي"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">بياناتي</p>
               </button>
               <button
@@ -369,19 +436,12 @@ function AccountPage() {
                 onChange={(event) => setName(event.target.value)}
                 required
               />
+              <Input className="h-12 rounded-none bg-secondary" type="email" value={email} readOnly />
               <Input
                 className="h-12 rounded-none"
                 placeholder="رقم الجوال"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                required
-              />
-              <Input
-                className="h-12 rounded-none"
-                type="email"
-                placeholder="البريد الإلكتروني"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
               />
               <Button type="submit" variant="luxury" size="luxury" className="rounded-none">
                 حفظ البيانات
@@ -447,7 +507,7 @@ function AccountPage() {
               {myOrders.length === 0 ? (
                 <div className="border border-border px-6 py-14 text-center">
                   <Package className="mx-auto mb-4 size-7 text-muted-foreground" strokeWidth={1.2} />
-                  <p className="text-muted-foreground">لا توجد طلبات مرتبطة بهذا الجوال بعد.</p>
+                  <p className="text-muted-foreground">لا توجد طلبات مرتبطة بهذا الحساب بعد.</p>
                   <Button asChild variant="luxury" size="luxury" className="mt-6 rounded-none">
                     <Link to="/products">تسوّقي المجموعة</Link>
                   </Button>

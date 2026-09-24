@@ -7,132 +7,229 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  createCustomer,
-  findCustomerByPhone,
-  loadCustomerSession,
-  loadCustomers,
-  saveCustomerSession,
-  saveCustomers,
-  type CustomerProfile,
-} from "@/lib/customer-account";
+import type { User } from "@supabase/supabase-js";
+import { mapProfile, type CustomerProfile, type ProfileRow } from "@/lib/customer-account";
+import { getSiteUrl, getSupabase, translateAuthError } from "@/lib/supabase";
 
-type ProfilePatch = Partial<
-  Pick<CustomerProfile, "name" | "phone" | "email" | "city" | "district" | "address" | "password">
->;
+type ProfilePatch = Partial<Pick<CustomerProfile, "name" | "phone" | "city" | "district" | "address">>;
+
+type AuthResult = { ok: true; message?: string } | { ok: false; error: string };
 
 type CustomerAccountValue = {
   ready: boolean;
   customer: CustomerProfile | null;
+  emailConfirmed: boolean;
   register: (input: {
     name: string;
+    email: string;
     phone: string;
     password: string;
-    email?: string;
     city?: string;
     district?: string;
     address?: string;
-  }) => { ok: true } | { ok: false; error: string };
-  login: (phone: string, password: string) => { ok: true } | { ok: false; error: string };
-  logout: () => void;
-  updateProfile: (patch: ProfilePatch) => { ok: true } | { ok: false; error: string };
+  }) => Promise<AuthResult>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  logout: () => Promise<void>;
+  updateProfile: (patch: ProfilePatch) => Promise<AuthResult>;
+  changePassword: (password: string) => Promise<AuthResult>;
+  requestPasswordReset: (email: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string) => Promise<AuthResult>;
 };
 
 const CustomerAccountContext = createContext<CustomerAccountValue | undefined>(undefined);
 
+function profileFromUser(user: User): CustomerProfile {
+  const meta = user.user_metadata ?? {};
+  return {
+    id: user.id,
+    name: String(meta.name ?? ""),
+    phone: String(meta.phone ?? ""),
+    email: user.email ?? "",
+    city: String(meta.city ?? ""),
+    district: String(meta.district ?? ""),
+    address: String(meta.address ?? ""),
+    createdAt: user.created_at ?? new Date().toISOString(),
+  };
+}
+
+async function syncProfileRow(user: User, profile: CustomerProfile) {
+  try {
+    await getSupabase().from("profiles").upsert({
+      id: user.id,
+      name: profile.name,
+      phone: profile.phone,
+      email: profile.email,
+      city: profile.city,
+      district: profile.district,
+      address: profile.address,
+      updated_at: new Date().toISOString(),
+    });
+  } catch {
+    // Table is optional until schema.sql is applied in the dashboard.
+  }
+}
+
 export function CustomerAccountProvider({ children }: { children: ReactNode }) {
-  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
-  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    const list = loadCustomers();
-    setCustomers(list);
-    const session = loadCustomerSession();
-    if (session && list.some((item) => item.id === session.customerId)) {
-      setCustomerId(session.customerId);
+  const loadProfile = useCallback(async (user: User) => {
+    setEmailConfirmed(Boolean(user.email_confirmed_at));
+    let profile = profileFromUser(user);
+
+    const { data } = await getSupabase().from("profiles").select("*").eq("id", user.id).maybeSingle();
+    if (data) {
+      profile = mapProfile(data as ProfileRow, user.email ?? "");
+    } else {
+      await syncProfileRow(user, profile);
     }
-    setReady(true);
+
+    setCustomer(profile);
   }, []);
 
-  const persist = useCallback((next: CustomerProfile[]) => {
-    setCustomers(next);
-    saveCustomers(next);
-  }, []);
+  useEffect(() => {
+    const supabase = getSupabase();
+    let mounted = true;
 
-  const setSession = useCallback((id: string | null) => {
-    setCustomerId(id);
-    saveCustomerSession(id ? { customerId: id } : null);
-  }, []);
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        if (!mounted) return;
+        if (data.session?.user) {
+          try {
+            await loadProfile(data.session.user);
+          } catch {
+            setCustomer(profileFromUser(data.session.user));
+          }
+        } else {
+          setCustomer(null);
+          setEmailConfirmed(false);
+        }
+      })
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
 
-  const customer = useMemo(
-    () => customers.find((item) => item.id === customerId) ?? null,
-    [customers, customerId],
-  );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT" || !session?.user) {
+        setCustomer(null);
+        setEmailConfirmed(false);
+        return;
+      }
+      try {
+        await loadProfile(session.user);
+      } catch {
+        setCustomer(profileFromUser(session.user));
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [loadProfile]);
 
   const value = useMemo<CustomerAccountValue>(
     () => ({
       ready,
       customer,
-      register: (input) => {
+      emailConfirmed,
+      register: async (input) => {
         const name = input.name.trim();
+        const email = input.email.trim().toLowerCase();
+        const password = input.password;
         const phone = input.phone.trim();
-        const password = input.password.trim();
-        if (!name || !phone || !password) {
-          return { ok: false, error: "أكملي الاسم والجوال وكلمة المرور" };
+        if (!name || !email || !password) {
+          return { ok: false, error: "أكملي الاسم والبريد وكلمة المرور" };
         }
-        if (password.length < 4) {
-          return { ok: false, error: "كلمة المرور يجب أن تكون 4 أحرف على الأقل" };
+        if (password.length < 6) {
+          return { ok: false, error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" };
         }
-        if (findCustomerByPhone(customers, phone)) {
-          return { ok: false, error: "هذا الجوال مسجّل مسبقًا" };
+        const { data, error } = await getSupabase().auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+            data: {
+              name,
+              phone,
+              city: input.city?.trim() ?? "",
+              district: input.district?.trim() ?? "",
+              address: input.address?.trim() ?? "",
+            },
+          },
+        });
+        if (error) return { ok: false, error: translateAuthError(error.message) };
+        if (data.user && !data.session) {
+          return { ok: true, message: "تم إنشاء الحساب. تفقدي بريدك واضغطي رابط التأكيد قبل تسجيل الدخول." };
         }
-        const profile = createCustomer(input);
-        persist([...customers, profile]);
-        setSession(profile.id);
+        return { ok: true, message: "تم إنشاء الحساب وتسجيل الدخول." };
+      },
+      login: async (email, password) => {
+        const { error } = await getSupabase().auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (error) return { ok: false, error: translateAuthError(error.message) };
         return { ok: true };
       },
-      login: (phone, password) => {
-        const found = findCustomerByPhone(customers, phone);
-        if (!found || found.password !== password.trim()) {
-          return { ok: false, error: "الجوال أو كلمة المرور غير صحيحة" };
-        }
-        setSession(found.id);
-        return { ok: true };
+      logout: async () => {
+        await getSupabase().auth.signOut();
+        setCustomer(null);
+        setEmailConfirmed(false);
       },
-      logout: () => setSession(null),
-      updateProfile: (patch) => {
+      updateProfile: async (patch) => {
         if (!customer) return { ok: false, error: "يجب تسجيل الدخول أولًا" };
-        const nextPhone = patch.phone?.trim() ?? customer.phone;
-        if (patch.phone) {
-          const clash = findCustomerByPhone(customers, nextPhone);
-          if (clash && clash.id !== customer.id) {
-            return { ok: false, error: "هذا الجوال مستخدم لحساب آخر" };
-          }
-        }
-        if (patch.password !== undefined && patch.password.trim() && patch.password.trim().length < 4) {
-          return { ok: false, error: "كلمة المرور يجب أن تكون 4 أحرف على الأقل" };
-        }
-        const updated: CustomerProfile = {
-          ...customer,
+        const next = {
           name: patch.name?.trim() ?? customer.name,
-          phone: nextPhone.replace(/\s+/g, ""),
-          email: patch.email?.trim() ?? customer.email,
+          phone: patch.phone?.trim() ?? customer.phone,
           city: patch.city?.trim() ?? customer.city,
           district: patch.district?.trim() ?? customer.district,
           address: patch.address?.trim() ?? customer.address,
-          password: patch.password?.trim() ? patch.password.trim() : customer.password,
         };
-        persist(customers.map((item) => (item.id === customer.id ? updated : item)));
+        const { data, error } = await getSupabase().auth.updateUser({ data: next });
+        if (error || !data.user) return { ok: false, error: translateAuthError(error?.message) };
+        const profile = profileFromUser(data.user);
+        setCustomer(profile);
+        await syncProfileRow(data.user, profile);
         return { ok: true };
       },
+      changePassword: async (password) => {
+        if (password.trim().length < 6) {
+          return { ok: false, error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" };
+        }
+        const { error } = await getSupabase().auth.updateUser({ password: password.trim() });
+        if (error) return { ok: false, error: translateAuthError(error.message) };
+        return { ok: true };
+      },
+      requestPasswordReset: async (email) => {
+        const trimmed = email.trim().toLowerCase();
+        if (!trimmed) return { ok: false, error: "أدخلي البريد الإلكتروني" };
+        const { error } = await getSupabase().auth.resetPasswordForEmail(trimmed, {
+          redirectTo: `${getSiteUrl()}/auth/reset`,
+        });
+        if (error) return { ok: false, error: translateAuthError(error.message) };
+        return { ok: true, message: "أرسلنا رابط استعادة كلمة المرور إلى بريدك." };
+      },
+      resendConfirmation: async (email) => {
+        const trimmed = email.trim().toLowerCase();
+        if (!trimmed) return { ok: false, error: "أدخلي البريد الإلكتروني" };
+        const { error } = await getSupabase().auth.resend({
+          type: "signup",
+          email: trimmed,
+          options: { emailRedirectTo: `${getSiteUrl()}/auth/callback` },
+        });
+        if (error) return { ok: false, error: translateAuthError(error.message) };
+        return { ok: true, message: "أُعيد إرسال رسالة التأكيد إلى بريدك." };
+      },
     }),
-    [customer, customers, persist, ready, setSession],
+    [customer, emailConfirmed, ready],
   );
 
-  return (
-    <CustomerAccountContext.Provider value={value}>{children}</CustomerAccountContext.Provider>
-  );
+  return <CustomerAccountContext.Provider value={value}>{children}</CustomerAccountContext.Provider>;
 }
 
 export function useCustomerAccount() {

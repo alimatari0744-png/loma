@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as RitualRouteImport } from './routes/ritual'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
@@ -37,6 +39,16 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/auth/reset',
+  path: '/auth/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RitualRoute = RitualRouteImport.update({
   id: '/ritual',
   path: '/ritual',
@@ -58,6 +70,8 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset': typeof AuthResetRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/': typeof ProductsIndexRoute
@@ -67,6 +81,8 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset': typeof AuthResetRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products': typeof ProductsIndexRoute
@@ -77,6 +93,8 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/reset': typeof AuthResetRoute
   '/ritual': typeof RitualRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/': typeof ProductsIndexRoute
@@ -88,6 +106,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/auth/callback'
+    | '/auth/reset'
     | '/ritual'
     | '/products/$id'
     | '/products/'
@@ -97,6 +117,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/auth/callback'
+    | '/auth/reset'
     | '/ritual'
     | '/products/$id'
     | '/products'
@@ -106,6 +128,8 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/auth/callback'
+    | '/auth/reset'
     | '/ritual'
     | '/products/$id'
     | '/products/'
@@ -116,6 +140,8 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthResetRoute: typeof AuthResetRoute
   RitualRoute: typeof RitualRoute
   ProductsIdRoute: typeof ProductsIdRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -151,6 +177,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset': {
+      id: '/auth/reset'
+      path: '/auth/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ritual': {
       id: '/ritual'
       path: '/ritual'
@@ -180,6 +220,8 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthResetRoute: AuthResetRoute,
   RitualRoute: RitualRoute,
   ProductsIdRoute: ProductsIdRoute,
   ProductsIndexRoute: ProductsIndexRoute,
