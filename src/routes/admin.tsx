@@ -58,7 +58,7 @@ function AdminPage() {
 
   if (!store.ready) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground" dir="rtl">
+      <div className="grid min-h-screen place-items-center bg-[#f6f1e8] text-sm text-muted-foreground" dir="rtl">
         جاري التحميل…
       </div>
     );
@@ -66,9 +66,9 @@ function AdminPage() {
 
   if (!store.isAdmin) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background px-5" dir="rtl">
+      <div className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#f3e6c8_0%,#f6f1e8_42%,#efe8dc_100%)] px-5" dir="rtl">
         <form
-          className="w-full max-w-md bg-card px-8 py-10 shadow-[0_20px_60px_rgba(44,42,38,0.06)]"
+          className="w-full max-w-md border border-[#e6dcc8] bg-white/90 px-8 py-11 shadow-[0_24px_80px_rgba(68,52,28,0.08)]"
           onSubmit={async (event) => {
             event.preventDefault();
             setError("");
@@ -78,13 +78,11 @@ function AdminPage() {
             if (!result.ok) setError(result.error);
           }}
         >
-          <div className="mb-8">
-            <p className="text-[11px] font-medium tracking-[0.28em] text-gold">LOMA</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">لوحة التحكم</h1>
-          </div>
-          <p className="text-sm leading-7 text-muted-foreground">الدخول مخصص لحساب الإدارة المعتمد فقط.</p>
+          <p className="text-[11px] font-medium tracking-[0.32em] text-gold">LOMA</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">لوحة التحكم</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">الدخول مخصص لحساب الإدارة المعتمد فقط.</p>
           <Input
-            className="mt-6 h-12 rounded-none border-border/80 bg-background"
+            className="mt-8 h-12 rounded-none border-border/80 bg-background"
             type="email"
             placeholder="البريد الإلكتروني"
             value={email}
@@ -103,7 +101,7 @@ function AdminPage() {
             required
           />
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-          <Button type="submit" variant="luxury" size="luxury" className="mt-4 h-12 w-full rounded-none" disabled={busy}>
+          <Button type="submit" variant="luxury" size="luxury" className="mt-5 h-12 w-full rounded-none" disabled={busy}>
             {busy ? "جارٍ الدخول…" : "دخول"}
           </Button>
           <Link
@@ -123,38 +121,21 @@ function AdminPage() {
     window.setTimeout(() => setSavedFlash(false), 1800);
   };
 
-  const saveLabel = store.saving
-    ? "جارٍ الحفظ على الموقع…"
-    : savedFlash
-      ? store.persistRemote
-        ? "تم الحفظ على الموقع"
-        : "حُفظ على هذا الجهاز فقط"
-      : store.persistError
-        ? store.persistError
-        : store.lastSavedAt
-          ? store.persistRemote
-            ? "متصل — التعديلات تظهر للزوار"
-            : "غير متصل بالخادم"
-          : "جاهز للتعديل";
-
   return (
-    <div className="min-h-screen bg-[#f3efe7] text-foreground" dir="rtl">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur-md">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8f3ea_0%,#f3eee6_40%,#efe8dc_100%)] text-foreground" dir="rtl">
+      <header className="sticky top-0 z-30 border-b border-[#e7dcc8] bg-[#fcfaf6]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[10px] font-medium tracking-[0.28em] text-gold">LOMA ADMIN</p>
+            <p className="text-[10px] font-medium tracking-[0.32em] text-gold">LOMA</p>
             <h1 className="mt-1 text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
           </div>
           <div className="flex items-center gap-2">
-            <span
-              className={`hidden max-w-[280px] truncate text-sm sm:inline-flex ${
-                store.persistError ? "text-destructive" : "text-gold"
-              }`}
-            >
-              <Check className="ml-1.5 size-3.5 shrink-0" strokeWidth={1.5} />
-              {saveLabel}
-            </span>
-            <Button asChild variant="outline" className="h-10 rounded-none border-border/80 px-4 text-sm">
+            {savedFlash && (
+              <span className="hidden items-center gap-1.5 text-sm text-gold sm:inline-flex">
+                <Check className="size-3.5" strokeWidth={1.5} /> تم الحفظ
+              </span>
+            )}
+            <Button asChild variant="outline" className="h-10 rounded-none border-[#e0d4c0] bg-white/70 px-4 text-sm">
               <Link to="/">
                 عرض الموقع <ArrowUpRight className="size-3.5" strokeWidth={1.25} />
               </Link>
@@ -171,8 +152,8 @@ function AdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[220px_1fr]">
-        <aside className="h-fit border border-border/70 bg-background p-3">
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-8 lg:grid-cols-[230px_1fr]">
+        <aside className="h-fit border border-[#e6dcc8] bg-white/80 p-3 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
           <nav className="space-y-1">
             {tabs.map((item) => {
               const Icon = item.icon;
@@ -190,14 +171,14 @@ function AdminPage() {
                   onClick={() => setTab(item.id)}
                   className={`flex w-full items-center gap-3 px-3 py-2.5 text-[13px] transition-colors ${
                     active
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-[#2c2820] text-[#f7f1e6]"
+                      : "text-muted-foreground hover:bg-[#f6f0e6] hover:text-foreground"
                   }`}
                 >
-                  <Icon strokeWidth={1.15} className="size-4" />
+                  <Icon strokeWidth={1.15} className={`size-4 ${active ? "text-gold" : ""}`} />
                   <span className="flex-1 text-right">{item.label}</span>
                   {count !== null && (
-                    <span className={`text-[11px] ${active ? "text-background/70" : "text-muted-foreground"}`}>
+                    <span className={`text-[11px] ${active ? "text-[#f7f1e6]/70" : "text-muted-foreground"}`}>
                       {count}
                     </span>
                   )}
@@ -270,41 +251,126 @@ function AdminPage() {
   );
 }
 
+function pct(part: number, total: number) {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
+}
+
 function OverviewPanel() {
-  const { products, orders } = useSiteStore();
+  const { products, orders, content } = useSiteStore();
+  const activeOrders = orders.filter((order) => order.status !== "ملغي");
   const newOrders = orders.filter((order) => order.status === "جديد").length;
-  const revenue = orders
-    .filter((order) => order.status !== "ملغي")
-    .reduce((sum, order) => sum + order.total, 0);
+  const doneOrders = orders.filter((order) => order.status === "مكتمل" || order.status === "تم الشحن").length;
+  const revenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
   const recent = orders.slice(0, 4);
+  const completionItems = [
+    Boolean(content.hero.title),
+    Boolean(content.about.intro),
+    Boolean(content.footer.email && !content.footer.email.includes("لاحقًا")),
+    Boolean(content.footer.phone && !content.footer.phone.includes("لاحقًا")),
+    products.length > 0,
+    Boolean(content.images.logo),
+    Boolean(content.images.hero),
+  ];
+  const storeReady = pct(completionItems.filter(Boolean).length, completionItems.length);
+  const fulfillment = pct(doneOrders, orders.length);
+  const newestShare = pct(newOrders, orders.length);
+  const categoryBars = categories.map((category) => {
+    const count = products.filter((product) => product.category === category).length;
+    return { category, count, value: pct(count, products.length) };
+  });
+  const statusBars = statuses.map((status) => {
+    const count = orders.filter((order) => order.status === status).length;
+    return { status, count, value: pct(count, orders.length) };
+  });
 
   return (
     <div className="space-y-5">
-      <PanelHeader title="نظرة عامة" subtitle="كل تعديل هنا يُحفظ ويظهر مباشرة على واجهة المتجر." />
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Package} label="المنتجات" value={String(products.length)} />
-        <StatCard icon={ShoppingBag} label="طلبات جديدة" value={String(newOrders)} />
-        <StatCard icon={Sparkles} label="إجمالي المبيعات" value={formatPrice(revenue)} />
+      <PanelHeader title="نظرة عامة" subtitle="قراءة جميلة لحالة المتجر: نسب، اكتمال، وحركة الطلبات." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard icon={Package} label="المنتجات" value={String(products.length)} hint={`${categoryBars[0]?.value || 0}% مزيل مكياج`} />
+        <StatCard icon={ShoppingBag} label="طلبات جديدة" value={String(newOrders)} hint={`${newestShare}% من كل الطلبات`} />
+        <StatCard icon={Sparkles} label="المبيعات" value={formatPrice(revenue)} hint={`${fulfillment}% تم شحنها أو اكتملت`} />
       </div>
-      <div className="border border-border/70 bg-background px-6 py-6">
-        <h3 className="text-sm font-semibold">آخر الطلبات</h3>
-        {recent.length === 0 ? (
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            لا توجد طلبات بعد. عند إتمام الشراء من السلة سيظهر الطلب هنا ويمكن تغيير حالته أو حذفه.
-          </p>
-        ) : (
-          <div className="mt-4 divide-y divide-border/70">
-            {recent.map((order) => (
-              <div key={order.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <div>
-                  <p className="font-medium">{order.id}</p>
-                  <p className="text-muted-foreground">{order.customerName || "عميلة"} · {order.status}</p>
-                </div>
-                <span className="text-gold">{formatPrice(order.total)}</span>
-              </div>
+
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="flex items-center gap-6 border border-[#e6dcc8] bg-white/85 px-6 py-7 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+          <div
+            className="grid size-28 shrink-0 place-items-center rounded-full"
+            style={{
+              background: `conic-gradient(#c2a15a ${storeReady}%, #efe6d6 0)`,
+            }}
+          >
+            <div className="grid size-[4.6rem] place-items-center rounded-full bg-white">
+              <span className="text-xl font-semibold">{storeReady}%</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium tracking-[0.18em] text-gold">اكتمال المتجر</p>
+            <h3 className="mt-2 text-xl font-semibold">جاهزية المحتوى</h3>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              النصوص، الصور، وبيانات التواصل مكتملة بنسبة {storeReady}%.
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+          <h3 className="text-sm font-semibold">توزيع المنتجات</h3>
+          <div className="mt-5 space-y-4">
+            {categoryBars.map((item) => (
+              <ProgressRow key={item.category} label={item.category} value={item.value} suffix={`${item.count}`} />
             ))}
           </div>
-        )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+          <h3 className="text-sm font-semibold">حالات الطلبات</h3>
+          <div className="mt-5 space-y-4">
+            {statusBars.map((item) => (
+              <ProgressRow key={item.status} label={item.status} value={item.value} suffix={`${item.count}`} />
+            ))}
+          </div>
+        </div>
+        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+          <h3 className="text-sm font-semibold">آخر الطلبات</h3>
+          {recent.length === 0 ? (
+            <p className="mt-5 text-sm leading-7 text-muted-foreground">
+              لا توجد طلبات بعد. عند إتمام الشراء من السلة سيظهر الطلب هنا.
+            </p>
+          ) : (
+            <div className="mt-4 divide-y divide-[#efe6d6]">
+              {recent.map((order) => (
+                <div key={order.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                  <div>
+                    <p className="font-medium">{order.id}</p>
+                    <p className="text-muted-foreground">
+                      {order.customerName || "عميلة"} · {order.status}
+                    </p>
+                  </div>
+                  <span className="text-gold">{formatPrice(order.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgressRow({ label, value, suffix }: { label: string; value: number; suffix: string }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-[12px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="text-foreground">
+          {suffix} · {value}%
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden bg-[#efe6d6]">
+        <div className="h-full bg-gold transition-all" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -313,19 +379,22 @@ function OverviewPanel() {
 function StatCard({
   label,
   value,
+  hint,
   icon: Icon,
 }: {
   label: string;
   value: string;
+  hint: string;
   icon: typeof Package;
 }) {
   return (
-    <div className="border border-border/70 bg-background px-5 py-6">
+    <div className="border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
       <div className="mb-4 flex items-center gap-2.5">
         <Icon strokeWidth={1.15} className="size-4 text-gold" />
         <span className="text-[12px] text-muted-foreground">{label}</span>
       </div>
-      <p className="text-[1.65rem] font-semibold tracking-tight">{value}</p>
+      <p className="text-[1.7rem] font-semibold tracking-tight">{value}</p>
+      <p className="mt-2 text-[12px] text-gold">{hint}</p>
     </div>
   );
 }
@@ -362,7 +431,7 @@ function ProductsPanel({
 
       <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.id} className="flex gap-4 border border-border/70 bg-background p-3.5">
+          <div key={product.id} className="flex gap-4 border border-[#e6dcc8] bg-white/85 p-3.5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
             <img src={product.image} alt="" className="size-[4.5rem] object-cover" />
             <div className="min-w-0 flex-1 self-center">
               <p className="font-medium tracking-tight">{product.name}</p>
@@ -424,7 +493,7 @@ function ProductEditor({
 
   return (
     <form
-      className="space-y-5 border border-border/70 bg-background px-5 py-6"
+      className="space-y-5 border border-[#e6dcc8] bg-white/90 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]"
       onSubmit={async (event: FormEvent) => {
         event.preventDefault();
         await onSave({
@@ -541,7 +610,7 @@ function OrdersPanel({
     return (
       <div className="space-y-5">
         <PanelHeader title="الطلبات" subtitle="تظهر هنا عند إتمام الشراء من السلة." />
-        <div className="border border-border/70 bg-background px-6 py-16 text-center text-sm text-muted-foreground">
+        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
           لا توجد طلبات بعد.
         </div>
       </div>
@@ -553,7 +622,7 @@ function OrdersPanel({
       <PanelHeader title="الطلبات" subtitle={`${orders.length} طلب مسجّل.`} />
       <div className="space-y-3">
         {orders.map((order) => (
-          <article key={order.id} className="border border-border/70 bg-background px-5 py-5">
+          <article key={order.id} className="border border-[#e6dcc8] bg-white/85 px-5 py-5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold tracking-tight">{order.id}</p>
@@ -859,7 +928,7 @@ function ImagesPanel({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {fields.map((field) => (
-          <div key={field.key} className="border border-border/70 bg-background p-4">
+          <div key={field.key} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
             <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
             <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
             <Input
@@ -886,7 +955,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-border/70 bg-background px-5 py-6">
+    <section className="border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
       <h3 className="mb-5 text-[13px] font-medium tracking-wide text-gold">{title}</h3>
       {children}
     </section>

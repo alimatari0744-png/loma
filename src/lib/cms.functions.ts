@@ -15,7 +15,7 @@ function getAdminEmail() {
 function getEnv() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
   const anon = process.env.VITE_SUPABASE_ANON_KEY || "";
-  const secret = process.env.SUPABASE_SECRET_KEY || "";
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   return { url, anon, secret };
 }
 

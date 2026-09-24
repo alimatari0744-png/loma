@@ -9,6 +9,7 @@ export type PersistResult = {
   ok: boolean;
   remote: boolean;
   error?: string;
+  data?: SiteData;
 };
 
 export function cmsPublicUrl(path: string) {
@@ -52,13 +53,6 @@ async function dataUrlToBlob(dataUrl: string) {
 export async function uploadCmsImage(dataUrl: string, path: string): Promise<string> {
   if (!dataUrl.startsWith("data:")) return dataUrl;
   const blob = await dataUrlToBlob(dataUrl);
-  const supabase = getSupabase();
-  const { error } = await supabase.storage.from(CMS_BUCKET).upload(path, blob, {
-    upsert: true,
-    contentType: blob.type || "image/jpeg",
-  });
-  if (!error) return `${cmsPublicUrl(path)}?v=${Date.now()}`;
-
   const token = await getAccessToken();
   const result = await saveRemoteCms({
     data: {
@@ -69,8 +63,15 @@ export async function uploadCmsImage(dataUrl: string, path: string): Promise<str
       base64: dataUrl.split(",")[1] ?? "",
     },
   });
-  if (!result.ok) throw new Error(result.error || "تعذر رفع الصورة");
-  return `${cmsPublicUrl(path)}?v=${Date.now()}`;
+  if (result.ok) return `${cmsPublicUrl(path)}?v=${Date.now()}`;
+
+  const supabase = getSupabase();
+  const { error } = await supabase.storage.from(CMS_BUCKET).upload(path, blob, {
+    upsert: true,
+    contentType: blob.type || "image/jpeg",
+  });
+  if (!error) return `${cmsPublicUrl(path)}?v=${Date.now()}`;
+  throw new Error(result.error || error.message || "تعذر رفع الصورة");
 }
 
 async function materializeImages(data: SiteData): Promise<SiteData> {
@@ -114,21 +115,23 @@ export async function persistSiteData(data: SiteData): Promise<PersistResult> {
     }
 
     const json = JSON.stringify(prepared);
+    const token = await getAccessToken();
+    const remote = await saveRemoteCms({
+      data: { accessToken: token, kind: "json", json },
+    });
+    if (remote.ok) return { ok: true, remote: true, data: prepared };
+
     const supabase = getSupabase();
     const { error } = await supabase.storage.from(CMS_BUCKET).upload(CMS_DATA_PATH, new Blob([json], { type: "application/json" }), {
       upsert: true,
       contentType: "application/json",
     });
-    if (!error) return { ok: true, remote: true };
+    if (!error) return { ok: true, remote: true, data: prepared };
 
-    const token = await getAccessToken();
-    const remote = await saveRemoteCms({
-      data: { accessToken: token, kind: "json", json },
-    });
-    if (remote.ok) return { ok: true, remote: true };
     return {
-      ok: true,
+      ok: false,
       remote: false,
+      data: prepared,
       error: remote.error || translateAuthError(error.message),
     };
   } catch (error) {

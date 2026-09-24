@@ -106,6 +106,10 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
     setSaving(false);
     setPersistRemote(result.remote);
     setPersistError(result.error ?? null);
+    if (result.data) {
+      setData(result.data);
+      dataRef.current = result.data;
+    }
     if (result.ok) setLastSavedAt(new Date().toISOString());
     return result;
   }, []);
