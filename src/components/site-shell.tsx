@@ -293,29 +293,29 @@ function SiteHeader() {
     <>
       <AnnouncementBar />
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur-xl">
-        <div className="relative mx-auto grid h-14 max-w-[1440px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-5 md:h-16 md:px-10 lg:px-14">
-          <div className="flex min-w-0 items-center justify-start gap-1">
+        <div className="mx-auto grid h-14 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center px-5 md:h-16 md:px-10 lg:px-14">
+          <div className="flex min-w-0 items-center justify-start gap-2">
             <MobileNav />
-            <nav className="hidden items-center gap-8 text-[13px] text-muted-foreground md:flex lg:gap-11">
-              {links.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="border-b border-transparent pb-1 transition-colors hover:text-foreground"
-                  activeProps={{ className: "border-foreground text-foreground" }}
-                  activeOptions={{ exact: item.to === "/" }}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <Link to="/" className="shrink-0">
+              <BrandMark />
+            </Link>
           </div>
 
-          <Link to="/" className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-            <BrandMark />
-          </Link>
+          <nav className="hidden items-center justify-center gap-8 text-[13px] text-muted-foreground md:flex lg:gap-11">
+            {links.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="border-b border-transparent pb-1 transition-colors hover:text-foreground"
+                activeProps={{ className: "border-foreground text-foreground" }}
+                activeOptions={{ exact: item.to === "/" }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-          <div className="col-start-3 flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-1">
             <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="البحث">
               <Search />
             </Button>
