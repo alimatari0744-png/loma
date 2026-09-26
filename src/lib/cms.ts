@@ -1,8 +1,9 @@
-import { createDefaultSiteData, saveSiteData, type SiteData } from "@/lib/site-data";
-import { getAdminEmail, getSupabase, supabaseUrl, translateAuthError } from "@/lib/supabase";
+import { CMS_BUCKET, cmsPublicUrl, isCmsUrl, resolveMediaUrl } from "@/lib/media";
+import { createDefaultSiteData, hydrateSiteMedia, saveSiteData, type SiteData } from "@/lib/site-data";
+import { getAdminEmail, getSupabase, translateAuthError } from "@/lib/supabase";
 import { publishReview, saveRemoteCms } from "@/lib/cms.functions";
 
-export const CMS_BUCKET = "loma-cms";
+export { CMS_BUCKET, cmsPublicUrl };
 export const CMS_DATA_PATH = "site-data.json";
 
 export type PersistResult = {
@@ -12,10 +13,6 @@ export type PersistResult = {
   data?: SiteData;
 };
 
-export function cmsPublicUrl(path: string) {
-  return `${supabaseUrl}/storage/v1/object/public/${CMS_BUCKET}/${path}`;
-}
-
 async function getAccessToken() {
   const { data } = await getSupabase().auth.getSession();
   return data.session?.access_token ?? "";
@@ -23,7 +20,7 @@ async function getAccessToken() {
 
 function mergeSiteData(parsed: Partial<SiteData>): SiteData {
   const defaults = createDefaultSiteData();
-  return {
+  return hydrateSiteMedia({
     products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : defaults.products,
     orders: Array.isArray(parsed.orders) ? parsed.orders : [],
     reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
@@ -32,7 +29,7 @@ function mergeSiteData(parsed: Partial<SiteData>): SiteData {
       ...(parsed.content ?? {}),
       images: { ...defaults.content.images, ...(parsed.content?.images ?? {}) },
     },
-  };
+  });
 }
 
 export async function loadRemoteSiteData(): Promise<SiteData | null> {
@@ -51,17 +48,30 @@ async function dataUrlToBlob(dataUrl: string) {
   return res.blob();
 }
 
-export async function uploadCmsImage(dataUrl: string, path: string): Promise<string> {
-  if (!dataUrl.startsWith("data:")) return dataUrl;
-  const blob = await dataUrlToBlob(dataUrl);
+async function blobToBase64(blob: Blob) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+export async function uploadCmsImage(source: string, path: string): Promise<string> {
+  const resolved = resolveMediaUrl(source);
+  if (isCmsUrl(resolved) && !resolved.startsWith("data:")) return resolved;
+  const blob = await dataUrlToBlob(resolved);
   const token = await getAccessToken();
+  const base64 = resolved.startsWith("data:") ? (resolved.split(",")[1] ?? "") : await blobToBase64(blob);
   const result = await saveRemoteCms({
     data: {
       accessToken: token,
       kind: "file",
       path,
       contentType: blob.type || "image/jpeg",
-      base64: dataUrl.split(",")[1] ?? "",
+      base64,
     },
   });
   if (result.ok) return `${cmsPublicUrl(path)}?v=${Date.now()}`;
@@ -78,12 +88,12 @@ export async function uploadCmsImage(dataUrl: string, path: string): Promise<str
 async function materializeImages(data: SiteData): Promise<SiteData> {
   const products = await Promise.all(
     data.products.map(async (product) => {
-      const image = product.image.startsWith("data:")
+      const image = !isCmsUrl(product.image)
         ? await uploadCmsImage(product.image, `images/product-${product.id}.jpg`)
         : product.image;
       const gallery = await Promise.all(
         product.gallery.map((item, index) =>
-          item.startsWith("data:")
+          !isCmsUrl(item)
             ? uploadCmsImage(item, `images/product-${product.id}-${index}.jpg`)
             : Promise.resolve(item),
         ),
@@ -94,7 +104,7 @@ async function materializeImages(data: SiteData): Promise<SiteData> {
 
   const images = { ...data.content.images };
   for (const key of Object.keys(images) as (keyof typeof images)[]) {
-    if (images[key].startsWith("data:")) {
+    if (!isCmsUrl(images[key])) {
       images[key] = await uploadCmsImage(images[key], `images/${key}.jpg`);
     }
   }
@@ -108,7 +118,7 @@ async function materializeImages(data: SiteData): Promise<SiteData> {
 
 export async function persistSiteData(data: SiteData): Promise<PersistResult> {
   try {
-    const prepared = await materializeImages(data);
+    const prepared = await materializeImages(hydrateSiteMedia(data));
     try {
       saveSiteData(prepared);
     } catch {

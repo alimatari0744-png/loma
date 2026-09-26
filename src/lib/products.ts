@@ -1,6 +1,4 @@
-import bottle100Image from "@/assets/loma-product-100.jpg";
-import bottle50Image from "@/assets/loma-product-50.jpg";
-import padsImage from "@/assets/loma-product-pads.jpg";
+import { media } from "@/lib/media";
 
 export type Variant = { id: number; label: string; price: number };
 
@@ -40,8 +38,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوة 100 مل بمضخة", "تركيبة مائية بدون عطر"],
     highlights: careHighlights,
     category: "مزيل المكياج",
-    image: bottle100Image,
-    gallery: [bottle100Image, bottle50Image, padsImage],
+    image: media.bottle100,
+    gallery: [media.bottle100, media.bottle50, media.pads],
     badge: "الأكثر طلبًا",
   },
   {
@@ -55,8 +53,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوة 50 مل بمضخة"],
     highlights: careHighlights,
     category: "مزيل المكياج",
-    image: bottle50Image,
-    gallery: [bottle50Image, bottle100Image],
+    image: media.bottle50,
+    gallery: [media.bottle50, media.bottle100],
   },
   {
     id: 3,
@@ -69,8 +67,8 @@ export const defaultProducts: Product[] = [
     contents: ["وسادات قطن 100%", "حواف مخيطة لا تتفتت"],
     highlights: ["قطن ناعم على البشرة", "لا تتفتت مع الاستخدام", "مناسبة لمنطقة العينين"],
     category: "الوسادات",
-    image: padsImage,
-    gallery: [padsImage, bottle100Image],
+    image: media.pads,
+    gallery: [media.pads, media.bottle100],
     variantLabel: "عدد الحبات",
     variants: [
       { id: 301, label: "حبتان", price: 15 },
@@ -89,8 +87,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوة مزيل ميسيلار 100 مل", "4 فوط قطنية ناعمة", "صندوق لوما"],
     highlights: careHighlights,
     category: "الباقات",
-    image: padsImage,
-    gallery: [padsImage, bottle100Image, bottle50Image],
+    image: media.pads,
+    gallery: [media.pads, media.bottle100, media.bottle50],
     badge: "الأوفر",
   },
   {
@@ -104,8 +102,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوة مزيل ميسيلار 50 مل", "فوطتان قطنيتان"],
     highlights: careHighlights,
     category: "الباقات",
-    image: bottle50Image,
-    gallery: [bottle50Image, padsImage],
+    image: media.bottle50,
+    gallery: [media.bottle50, media.pads],
     badge: "باقة لوما",
   },
   {
@@ -119,8 +117,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوتان 50 مل"],
     highlights: careHighlights,
     category: "الباقات",
-    image: bottle50Image,
-    gallery: [bottle50Image, bottle100Image],
+    image: media.bottle50,
+    gallery: [media.bottle50, media.bottle100],
   },
   {
     id: 7,
@@ -133,8 +131,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوتان من الوسادات القطنية"],
     highlights: ["قطن ناعم على البشرة", "كمية تكفي شهرين", "لا تتفتت مع الاستخدام"],
     category: "الوسادات",
-    image: padsImage,
-    gallery: [padsImage, bottle50Image],
+    image: media.pads,
+    gallery: [media.pads, media.bottle50],
   },
   {
     id: 8,
@@ -147,8 +145,8 @@ export const defaultProducts: Product[] = [
     contents: ["عبوة 100 مل", "عبوة 50 مل", "وسادات قطنية", "صندوق لوما"],
     highlights: careHighlights,
     category: "الباقات",
-    image: bottle100Image,
-    gallery: [bottle100Image, bottle50Image, padsImage],
+    image: media.bottle100,
+    gallery: [media.bottle100, media.bottle50, media.pads],
     badge: "مجموعة كاملة",
   },
 ];

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-import { hasPurchasedProduct, hasReviewedProduct, isSameCustomerReview, type Review, type SiteData } from "@/lib/site-data";
+import { hasPurchasedProduct, hasReviewedProduct, hydrateSiteMedia, isSameCustomerReview, type Review, type SiteData } from "@/lib/site-data";
 
 type CmsPayload =
   | { accessToken: string; kind: "json"; json: string }
@@ -65,7 +65,7 @@ export const saveRemoteCms = createServerFn({ method: "POST" })
   });
 
 function mergeSiteData(parsed: Partial<SiteData>, fallback: SiteData): SiteData {
-  return {
+  return hydrateSiteMedia({
     products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : fallback.products,
     orders: Array.isArray(parsed.orders) ? parsed.orders : fallback.orders,
     reviews: Array.isArray(parsed.reviews) ? parsed.reviews : fallback.reviews,
@@ -74,7 +74,7 @@ function mergeSiteData(parsed: Partial<SiteData>, fallback: SiteData): SiteData 
       ...(parsed.content ?? {}),
       images: { ...fallback.content.images, ...(parsed.content?.images ?? {}) },
     },
-  };
+  });
 }
 
 export const publishReview = createServerFn({ method: "POST" })

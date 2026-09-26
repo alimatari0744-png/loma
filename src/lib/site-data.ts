@@ -1,8 +1,4 @@
-import bottle100Image from "@/assets/loma-product-100.jpg";
-import bottle50Image from "@/assets/loma-product-50.jpg";
-import padsImage from "@/assets/loma-product-pads.jpg";
-import heroPremium from "@/assets/loma-hero-premium.jpg";
-import lomaMark from "@/assets/loma-mark.png";
+import { media, resolveMediaUrl } from "@/lib/media";
 import type { Product } from "@/lib/products";
 import { defaultProducts } from "@/lib/products";
 
@@ -207,10 +203,10 @@ export const defaultContent: SiteContent = {
     phone: "سيتم الإضافة لاحقًا",
   },
   images: {
-    hero: heroPremium,
-    ritualPads: padsImage,
-    ritualBottle: bottle100Image,
-    logo: lomaMark,
+    hero: media.hero,
+    ritualPads: media.pads,
+    ritualBottle: media.bottle100,
+    logo: media.logo,
   },
 };
 
@@ -223,6 +219,30 @@ export function createDefaultSiteData(): SiteData {
   };
 }
 
+export function hydrateSiteMedia(data: SiteData): SiteData {
+  return {
+    ...data,
+    products: data.products.map((product) => ({
+      ...product,
+      image: resolveMediaUrl(product.image),
+      gallery: (product.gallery ?? []).map((item) => resolveMediaUrl(item)),
+    })),
+    orders: data.orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) => ({ ...item, image: resolveMediaUrl(item.image) })),
+    })),
+    content: {
+      ...data.content,
+      images: {
+        hero: resolveMediaUrl(data.content.images.hero),
+        ritualPads: resolveMediaUrl(data.content.images.ritualPads),
+        ritualBottle: resolveMediaUrl(data.content.images.ritualBottle),
+        logo: resolveMediaUrl(data.content.images.logo),
+      },
+    },
+  };
+}
+
 export function loadSiteData(): SiteData {
   if (typeof window === "undefined") return createDefaultSiteData();
   try {
@@ -230,12 +250,12 @@ export function loadSiteData(): SiteData {
     if (!raw) return createDefaultSiteData();
     const parsed = JSON.parse(raw) as Partial<SiteData>;
     const defaults = createDefaultSiteData();
-    return {
+    return hydrateSiteMedia({
       products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : defaults.products,
       orders: Array.isArray(parsed.orders) ? parsed.orders : [],
       reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
       content: { ...defaults.content, ...(parsed.content ?? {}), images: { ...defaults.content.images, ...(parsed.content?.images ?? {}) } },
-    };
+    });
   } catch {
     return createDefaultSiteData();
   }
@@ -309,10 +329,7 @@ export function emptyProduct(id: number): Product {
     contents: [],
     highlights: [],
     category: "مزيل المكياج",
-    image: bottle100Image,
-    gallery: [bottle100Image],
+    image: media.bottle100,
+    gallery: [media.bottle100],
   };
 }
-
-// keep image imports available for defaults
-void bottle50Image;

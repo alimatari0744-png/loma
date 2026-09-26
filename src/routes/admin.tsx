@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -260,8 +260,15 @@ function AdminPage() {
           {tab === "images" && (
             <ImagesPanel
               content={store.content}
-              onSave={async (images) => {
-                await flashSave(await store.patchContent({ images }));
+              products={store.products}
+              onSave={async (images, products) => {
+                await flashSave(
+                  await store.importData({
+                    ...store.exportData(),
+                    products,
+                    content: { ...store.content, images },
+                  }),
+                );
               }}
             />
           )}
@@ -995,18 +1002,42 @@ function ContentPanel({
 
 function ImagesPanel({
   content,
+  products,
   onSave,
 }: {
   content: SiteContent;
-  onSave: (images: SiteContent["images"]) => void | Promise<void>;
+  products: Product[];
+  onSave: (images: SiteContent["images"], products: Product[]) => void | Promise<void>;
 }) {
   const [images, setImages] = useState(content.images);
+  const [productDrafts, setProductDrafts] = useState(products);
   const { saving } = useSiteStore();
+
+  useEffect(() => {
+    setImages(content.images);
+    setProductDrafts(products);
+  }, [content.images, products]);
 
   const upload = async (key: keyof SiteContent["images"], file?: File | null) => {
     if (!file) return;
     const url = await fileToDataUrl(file);
     setImages((current) => ({ ...current, [key]: url }));
+  };
+
+  const uploadProduct = async (id: number, file?: File | null) => {
+    if (!file) return;
+    const url = await fileToDataUrl(file);
+    setProductDrafts((current) =>
+      current.map((product) =>
+        product.id === id
+          ? {
+              ...product,
+              image: url,
+              gallery: [url, ...product.gallery.filter((item) => item !== product.image && item !== url)],
+            }
+          : product,
+      ),
+    );
   };
 
   const fields: { key: keyof SiteContent["images"]; label: string }[] = [
@@ -1021,31 +1052,50 @@ function ImagesPanel({
       <div className="flex items-end justify-between gap-3">
         <PanelHeader
           title="الصور"
-          subtitle="صور الصفحة الرئيسية والروتين والشعار فقط — صفحة «عن لوما» بلا صور."
+          subtitle="كل صور الموقع والمنتجات من ثوبابيس. استبدلي أي صورة ثم احفظي ليتم رفعها هناك."
         />
         <Button
           variant="luxury"
           className="h-10 shrink-0 rounded-none px-5"
           disabled={saving}
-          onClick={() => onSave(images)}
+          onClick={() => onSave(images, productDrafts)}
         >
           {saving ? "جارٍ الحفظ…" : "حفظ الصور"}
         </Button>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {fields.map((field) => (
-          <div key={field.key} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
-            <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
-            <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
-            <Input
-              type="file"
-              accept="image/*"
-              className="rounded-none"
-              onChange={(e) => upload(field.key, e.target.files?.[0])}
-            />
-          </div>
-        ))}
-      </div>
+      <Section title="صور الصفحات">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {fields.map((field) => (
+            <div key={field.key} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+              <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
+              <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
+              <Input
+                type="file"
+                accept="image/*"
+                className="rounded-none"
+                onChange={(e) => upload(field.key, e.target.files?.[0])}
+              />
+            </div>
+          ))}
+        </div>
+      </Section>
+      <Section title="صور المنتجات">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {productDrafts.map((product) => (
+            <div key={product.id} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+              <p className="mb-1 text-[13px] font-medium">{product.name}</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">{product.size}</p>
+              <img src={product.image} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
+              <Input
+                type="file"
+                accept="image/*"
+                className="rounded-none"
+                onChange={(e) => uploadProduct(product.id, e.target.files?.[0])}
+              />
+            </div>
+          ))}
+        </div>
+      </Section>
     </div>
   );
 }
