@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import { ProductReviews } from "@/components/product-reviews";
 import { SiteShell } from "@/components/site-shell";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
@@ -242,6 +243,8 @@ function ProductDetail() {
               </div>
             </div>
           </div>
+
+          <ProductReviews productId={product.id} productName={product.name} />
 
           <div className="mt-20 border-t border-border pt-14">
             <h2 className="mb-10 text-2xl font-semibold">قد يعجبك أيضًا</h2>

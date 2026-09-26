@@ -10,13 +10,17 @@ import {
 } from "react";
 import type { Product } from "@/lib/products";
 import { getProduct as findProduct, resolveCartKey as resolveKey } from "@/lib/products";
-import { loadRemoteSiteData, persistSiteData, type PersistResult } from "@/lib/cms";
+import { loadRemoteSiteData, persistCustomerReview, persistSiteData, type PersistResult } from "@/lib/cms";
 import {
   createDefaultSiteData,
+  hasPurchasedProduct,
+  hasReviewedProduct,
+  isSameCustomerReview,
   loadSiteData,
   saveSiteData,
   type Order,
   type OrderStatus,
+  type Review,
   type SiteContent,
   type SiteData,
 } from "@/lib/site-data";
@@ -32,6 +36,7 @@ type SiteStoreValue = {
   persistRemote: boolean;
   products: Product[];
   orders: Order[];
+  reviews: Review[];
   content: SiteContent;
   isAdmin: boolean;
   loginAdmin: (email: string, password: string) => Promise<AuthResult>;
@@ -44,12 +49,22 @@ type SiteStoreValue = {
   addOrder: (order: Omit<Order, "id" | "createdAt" | "status"> & { status?: OrderStatus }) => Promise<Order>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<PersistResult>;
   deleteOrder: (id: string) => Promise<PersistResult>;
+  addReview: (
+    input: Omit<Review, "id" | "createdAt" | "pinned">,
+  ) => Promise<PersistResult>;
+  deleteReview: (id: string) => Promise<PersistResult>;
+  setReviewPinned: (id: string, pinned: boolean) => Promise<PersistResult>;
   resetAll: () => Promise<PersistResult>;
   importData: (data: SiteData) => Promise<PersistResult>;
   exportData: () => SiteData;
   getProduct: (id: number) => Product | undefined;
   resolveCartKey: (key: number) => ReturnType<typeof resolveKey>;
 };
+
+function mergeById<T extends { id: string }>(primary: T[], extra: T[]) {
+  const seen = new Set(primary.map((item) => item.id));
+  return [...primary, ...extra.filter((item) => !seen.has(item.id))];
+}
 
 const SiteStoreContext = createContext<SiteStoreValue | undefined>(undefined);
 
@@ -70,7 +85,13 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
       const local = loadSiteData();
       const remote = await loadRemoteSiteData();
       if (cancelled) return;
-      const next = remote ?? local;
+      const next = remote
+        ? {
+            ...remote,
+            orders: mergeById(remote.orders, local.orders),
+            reviews: mergeById(remote.reviews, local.reviews),
+          }
+        : local;
       setData(next);
       if (remote) {
         try {
@@ -128,6 +149,7 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
       persistRemote,
       products: data.products,
       orders: data.orders,
+      reviews: data.reviews,
       content: data.content,
       isAdmin,
       loginAdmin: async (email, password) => {
@@ -186,6 +208,7 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
           status: orderInput.status ?? "جديد",
           customerName: orderInput.customerName,
           customerPhone: orderInput.customerPhone,
+          customerEmail: orderInput.customerEmail,
           customerNote: orderInput.customerNote,
           total: orderInput.total,
           items: orderInput.items,
@@ -202,6 +225,52 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
         update((current) => ({
           ...current,
           orders: current.orders.filter((order) => order.id !== id),
+        })),
+      addReview: async (input) => {
+        if (!hasPurchasedProduct(dataRef.current.orders, input.productId, input.authorPhone, input.authorEmail)) {
+          return { ok: false, remote: false, error: "يجب طلب المنتج قبل التقييم" };
+        }
+        if (hasReviewedProduct(dataRef.current.reviews, input.productId, input.authorPhone, input.authorEmail)) {
+          return { ok: false, remote: false, error: "لقد قيّمت هذا المنتج مسبقًا" };
+        }
+        const review: Review = {
+          ...input,
+          id: `REV-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          pinned: false,
+        };
+        const next: SiteData = {
+          ...dataRef.current,
+          reviews: [
+            review,
+            ...dataRef.current.reviews.filter(
+              (item) => !isSameCustomerReview(item, input.productId, input.authorPhone, input.authorEmail),
+            ),
+          ],
+        };
+        setData(next);
+        dataRef.current = next;
+        setSaving(true);
+        const result = await persistCustomerReview(input, next);
+        setSaving(false);
+        setPersistRemote(result.remote);
+        setPersistError(result.error ?? null);
+        if (result.data) {
+          setData(result.data);
+          dataRef.current = result.data;
+        }
+        if (result.ok) setLastSavedAt(new Date().toISOString());
+        return result;
+      },
+      deleteReview: (id) =>
+        update((current) => ({
+          ...current,
+          reviews: current.reviews.filter((review) => review.id !== id),
+        })),
+      setReviewPinned: (id, pinned) =>
+        update((current) => ({
+          ...current,
+          reviews: current.reviews.map((review) => (review.id === id ? { ...review, pinned } : review)),
         })),
       resetAll: () => commit(createDefaultSiteData()),
       importData: (incoming) => commit(incoming),

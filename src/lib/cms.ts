@@ -1,6 +1,6 @@
 import { createDefaultSiteData, saveSiteData, type SiteData } from "@/lib/site-data";
 import { getAdminEmail, getSupabase, supabaseUrl, translateAuthError } from "@/lib/supabase";
-import { saveRemoteCms } from "@/lib/cms.functions";
+import { publishReview, saveRemoteCms } from "@/lib/cms.functions";
 
 export const CMS_BUCKET = "loma-cms";
 export const CMS_DATA_PATH = "site-data.json";
@@ -26,6 +26,7 @@ function mergeSiteData(parsed: Partial<SiteData>): SiteData {
   return {
     products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : defaults.products,
     orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+    reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
     content: {
       ...defaults.content,
       ...(parsed.content ?? {}),
@@ -140,6 +141,42 @@ export async function persistSiteData(data: SiteData): Promise<PersistResult> {
       remote: false,
       error: error instanceof Error ? error.message : "تعذر حفظ التغييرات",
     };
+  }
+}
+
+export async function persistCustomerReview(
+  review: Omit<SiteData["reviews"][number], "id" | "createdAt" | "pinned">,
+  snapshot: SiteData,
+): Promise<PersistResult> {
+  try {
+    const result = await publishReview({ data: { review, snapshot } });
+    if (result.data) {
+      try {
+        saveSiteData(result.data);
+      } catch {
+        // localStorage quota should not block the review
+      }
+    }
+    if (result.ok && result.data) {
+      return { ok: true, remote: true, data: result.data };
+    }
+    const fallback = await persistSiteData({
+      ...snapshot,
+      reviews: result.data?.reviews ?? snapshot.reviews,
+    });
+    return {
+      ok: true,
+      remote: fallback.remote,
+      data: fallback.data ?? snapshot,
+      error: fallback.remote ? undefined : fallback.error,
+    };
+  } catch {
+    try {
+      saveSiteData(snapshot);
+    } catch {
+      // localStorage quota should not block the review
+    }
+    return { ok: true, remote: false, data: snapshot };
   }
 }
 

@@ -8,20 +8,24 @@ import {
   Image as ImageLucide,
   LayoutGrid,
   LogOut,
+  MessageSquare,
   Package,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   ShoppingBag,
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { StarRating } from "@/components/star-rating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSiteStore } from "@/components/site-store-context";
 import type { Product } from "@/lib/products";
 import { formatPrice } from "@/lib/products";
-import { emptyProduct, fileToDataUrl, type OrderStatus, type SiteContent } from "@/lib/site-data";
+import { emptyProduct, fileToDataUrl, type OrderStatus, type Review, type SiteContent } from "@/lib/site-data";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -33,12 +37,13 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "products" | "orders" | "content" | "images";
+type Tab = "overview" | "products" | "orders" | "reviews" | "content" | "images";
 
 const tabs: { id: Tab; label: string; icon: typeof Package }[] = [
   { id: "overview", label: "نظرة عامة", icon: LayoutGrid },
   { id: "products", label: "المنتجات", icon: Package },
   { id: "orders", label: "الطلبات", icon: ShoppingBag },
+  { id: "reviews", label: "التقييمات", icon: MessageSquare },
   { id: "content", label: "النصوص", icon: FileText },
   { id: "images", label: "الصور", icon: ImageLucide },
 ];
@@ -163,7 +168,9 @@ function AdminPage() {
                   ? store.products.length
                   : item.id === "orders"
                     ? store.orders.length
-                    : null;
+                    : item.id === "reviews"
+                      ? store.reviews.length
+                      : null;
               return (
                 <button
                   key={item.id}
@@ -228,6 +235,19 @@ function AdminPage() {
             />
           )}
 
+          {tab === "reviews" && (
+            <ReviewsPanel
+              reviews={store.reviews}
+              onPin={async (id, pinned) => {
+                await flashSave(await store.setReviewPinned(id, pinned));
+              }}
+              onDelete={async (id) => {
+                if (!confirm("حذف هذا التقييم؟")) return;
+                await flashSave(await store.deleteReview(id));
+              }}
+            />
+          )}
+
           {tab === "content" && (
             <ContentPanel
               content={store.content}
@@ -257,7 +277,7 @@ function pct(part: number, total: number) {
 }
 
 function OverviewPanel() {
-  const { products, orders, content } = useSiteStore();
+  const { products, orders, reviews, content } = useSiteStore();
   const activeOrders = orders.filter((order) => order.status !== "ملغي");
   const newOrders = orders.filter((order) => order.status === "جديد").length;
   const doneOrders = orders.filter((order) => order.status === "مكتمل" || order.status === "تم الشحن").length;
@@ -287,10 +307,16 @@ function OverviewPanel() {
   return (
     <div className="space-y-5">
       <PanelHeader title="نظرة عامة" subtitle="قراءة جميلة لحالة المتجر: نسب، اكتمال، وحركة الطلبات." />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <StatCard icon={Package} label="المنتجات" value={String(products.length)} hint={`${categoryBars[0]?.value || 0}% مزيل مكياج`} />
         <StatCard icon={ShoppingBag} label="طلبات جديدة" value={String(newOrders)} hint={`${newestShare}% من كل الطلبات`} />
         <StatCard icon={Sparkles} label="المبيعات" value={formatPrice(revenue)} hint={`${fulfillment}% تم شحنها أو اكتملت`} />
+        <StatCard
+          icon={MessageSquare}
+          label="التقييمات"
+          value={String(reviews.length)}
+          hint={`${reviews.filter((review) => review.pinned).length} مثبت في الرئيسية`}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -665,6 +691,86 @@ function OrdersPanel({
               >
                 <Trash2 className="size-3.5" strokeWidth={1.25} /> حذف
               </Button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewsPanel({
+  reviews,
+  onPin,
+  onDelete,
+}: {
+  reviews: Review[];
+  onPin: (id: string, pinned: boolean) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+}) {
+  const pinnedCount = reviews.filter((review) => review.pinned).length;
+
+  if (reviews.length === 0) {
+    return (
+      <div className="space-y-5">
+        <PanelHeader
+          title="التقييمات"
+          subtitle="تظهر هنا تعليقات العميلات بعد الشراء. ثبّتي ما تريدينه في الصفحة الرئيسية أو احذفي ما لا يناسب."
+        />
+        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
+          لا توجد تقييمات بعد. عند طلب منتج وكتابة رأي سيظهر هنا.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <PanelHeader
+        title="التقييمات"
+        subtitle={`${reviews.length} تقييم · ${pinnedCount} مثبت في الصفحة الرئيسية. التعليق غير المثبت يبقى تحت المنتج.`}
+      />
+      <div className="space-y-3">
+        {reviews.map((review) => (
+          <article
+            key={review.id}
+            className={`border bg-white/85 px-5 py-5 shadow-[0_8px_30px_rgba(70,52,24,0.03)] ${
+              review.pinned ? "border-gold/50" : "border-[#e6dcc8]"
+            }`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold tracking-tight">{review.authorName}</p>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {review.productName} · {new Date(review.createdAt).toLocaleString("ar-SA")}
+                </p>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  {review.authorPhone}
+                  {review.authorEmail ? ` · ${review.authorEmail}` : ""}
+                </p>
+              </div>
+              <StarRating value={review.rating} readOnly size="sm" />
+            </div>
+            <p className="mt-4 text-sm leading-8 text-muted-foreground">{review.comment}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant={review.pinned ? "luxury" : "outline"}
+                className="h-10 rounded-none px-4"
+                onClick={() => onPin(review.id, !review.pinned)}
+              >
+                {review.pinned ? <PinOff className="size-3.5" strokeWidth={1.25} /> : <Pin className="size-3.5" strokeWidth={1.25} />}
+                {review.pinned ? "إلغاء التثبيت" : "تثبيت في الرئيسية"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10 rounded-none text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(review.id)}
+              >
+                <Trash2 className="size-3.5" strokeWidth={1.25} /> حذف
+              </Button>
+              {review.pinned && <span className="text-[12px] text-gold">يظهر في سلايدر الصفحة الرئيسية</span>}
             </div>
           </article>
         ))}

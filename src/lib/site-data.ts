@@ -23,6 +23,7 @@ export type Order = {
   createdAt: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   customerNote: string;
   status: OrderStatus;
   total: number;
@@ -93,9 +94,23 @@ export type SiteContent = {
   };
 };
 
+export type Review = {
+  id: string;
+  productId: number;
+  productName: string;
+  authorName: string;
+  authorPhone: string;
+  authorEmail: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  pinned: boolean;
+};
+
 export type SiteData = {
   products: Product[];
   orders: Order[];
+  reviews: Review[];
   content: SiteContent;
 };
 
@@ -203,6 +218,7 @@ export function createDefaultSiteData(): SiteData {
   return {
     products: structuredClone(defaultProducts),
     orders: [],
+    reviews: [],
     content: structuredClone(defaultContent),
   };
 }
@@ -217,6 +233,7 @@ export function loadSiteData(): SiteData {
     return {
       products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : defaults.products,
       orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
       content: { ...defaults.content, ...(parsed.content ?? {}), images: { ...defaults.content.images, ...(parsed.content?.images ?? {}) } },
     };
   } catch {
@@ -235,6 +252,49 @@ export function fileToDataUrl(file: File): Promise<string> {
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
+  });
+}
+
+export function normalizeContact(value: string) {
+  return value.replace(/\s+/g, "").trim().toLowerCase();
+}
+
+export function isSameCustomerReview(review: Review, productId: number, phone?: string, email?: string) {
+  if (review.productId !== productId) return false;
+  const phoneKey = phone ? normalizeContact(phone) : "";
+  const emailKey = email ? normalizeContact(email) : "";
+  return Boolean(
+    (emailKey && normalizeContact(review.authorEmail) === emailKey) ||
+      (phoneKey && normalizeContact(review.authorPhone) === phoneKey),
+  );
+}
+
+export function hasReviewedProduct(reviews: Review[], productId: number, phone?: string, email?: string) {
+  return reviews.some((review) => isSameCustomerReview(review, productId, phone, email));
+}
+
+export function hasPurchasedProduct(
+  orders: Order[],
+  productId: number,
+  phone?: string,
+  email?: string,
+) {
+  const phoneKey = phone ? normalizeContact(phone) : "";
+  const emailKey = email ? normalizeContact(email) : "";
+  return orders.some((order) => {
+    if (order.status === "ملغي") return false;
+    const bought = order.items.some((item) => item.productId === productId);
+    if (!bought) return false;
+    const orderPhone = normalizeContact(order.customerPhone);
+    const orderEmail = normalizeContact(order.customerEmail ?? "");
+    const orderNote = order.customerNote.toLowerCase();
+    return (
+      (phoneKey && orderPhone === phoneKey) ||
+      (emailKey &&
+        (orderEmail === emailKey ||
+          orderNote.includes(emailKey) ||
+          order.customerName.toLowerCase() === emailKey))
+    );
   });
 }
 

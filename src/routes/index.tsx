@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
+import { ReviewsSlider } from "@/components/reviews-slider";
 import { BrandSymbol, SiteShell } from "@/components/site-shell";
 import { useSiteStore } from "@/components/site-store-context";
 
@@ -236,6 +237,8 @@ function HomePage() {
           </Link>
         </Button>
       </section>
+
+      <ReviewsSlider />
     </SiteShell>
   );
 }
