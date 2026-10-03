@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { SupportChat } from "@/components/support-chat";
 import { useCart } from "@/components/cart-context";
 import { useCustomerAccount } from "@/components/customer-account-context";
 import { useSiteStore } from "@/components/site-store-context";
@@ -378,10 +379,13 @@ function SiteFooter() {
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-background text-foreground">
-      <SiteHeader />
-      {children}
-      <SiteFooter />
-    </main>
+    <>
+      <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-background text-foreground">
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </main>
+      <SupportChat />
+    </>
   );
 }

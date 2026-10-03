@@ -993,6 +993,9 @@ function ContentPanel({
               value={draft.footer.phone}
               onChange={(e) => setPath("footer.phone", e.target.value)}
             />
+            <p className="text-[12px] leading-5 text-muted-foreground">
+              يظهر للعميلة إذا لم تستطع المساعدة حل المشكلة. لإضافة أكثر من رقم، افصلي بينها بفاصلة.
+            </p>
           </Field>
         </div>
       </Section>
