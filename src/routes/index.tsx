@@ -45,12 +45,12 @@ function HomePage() {
     <SiteShell>
       <section className="mx-auto grid max-w-[1440px] md:min-h-[calc(100svh-104px)] md:grid-cols-[0.9fr_1.1fr]">
         <div className="order-2 flex items-center px-6 py-14 md:order-1 md:px-10 lg:px-20">
-          <div className="max-w-xl">
+          <div className="@container w-full max-w-xl">
             <div className="mb-6 flex items-center gap-3 text-[11px] font-semibold text-gold md:text-xs">
               <span className="h-px w-10 bg-gold" />
               {content.hero.eyebrow}
             </div>
-            <h1 className="font-display text-[clamp(1.65rem,5.6vw,4.6rem)] font-medium leading-none">
+            <h1 className="whitespace-nowrap font-display text-[clamp(1.15rem,7.2cqi,2.85rem)] font-medium leading-none">
               {content.hero.title} {content.hero.titleLine2}
             </h1>
             <p className="mt-6 max-w-lg text-[15px] font-light leading-8 text-muted-foreground md:mt-8 md:text-lg md:leading-9">
