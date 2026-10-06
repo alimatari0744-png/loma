@@ -18,7 +18,11 @@ type SupportResult = {
   phones: string[];
 };
 
-const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+const MODELS = [
+  { id: "gemini-3.1-flash-lite", thinking: "minimal" },
+  { id: "gemini-3.5-flash", thinking: "low" },
+  { id: "gemini-3.8-flash", thinking: "low" },
+];
 let storeCache: { at: number; data: SiteData | null } | null = null;
 
 function getSupabaseUrl() {
@@ -160,7 +164,7 @@ async function askGemini(apiKey: string, system: string, messages: ChatMessage[]
   let lastError = "تعذر الاتصال بمساعدة لوما";
   for (const model of MODELS) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model.id}:generateContent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -176,6 +180,7 @@ async function askGemini(apiKey: string, system: string, messages: ChatMessage[]
             temperature: 0.2,
             maxOutputTokens: 400,
             responseMimeType: "application/json",
+            thinkingConfig: { thinkingLevel: model.thinking },
           },
         }),
       });
