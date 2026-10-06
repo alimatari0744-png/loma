@@ -9,7 +9,7 @@ import { getSupabase } from "@/lib/supabase";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
-const greeting = "مرحبًا، أنا لوما. اسأليني عن حالة طلبك، أو عن المنتجات وطريقة استخدامها.";
+const greeting = "مرحبًا، أنا لوما. اسأليني عن المنتجات وسأساعدكِ في الاختيار والاستخدام، أو عن حالة طلبك.";
 
 async function sessionToken() {
   const { data } = await getSupabase().auth.getSession();
