@@ -218,28 +218,27 @@ function ProductDetail() {
               </div>
 
               <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
-                <div>
-                  <h2 className="mb-3 text-sm font-semibold">محتويات المنتج</h2>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {product.contents.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-gold" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h2 className="mb-3 text-sm font-semibold">لماذا لوما</h2>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {product.highlights.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-gold" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {[
+                  { key: "contents", title: "محتويات المنتج", items: product.contents },
+                  { key: "highlights", title: "لماذا لوما", items: product.highlights },
+                  ...(product.sections ?? [])
+                    .filter((section) => section.title.trim() && section.items.length)
+                    .map((section) => ({ key: section.id, title: section.title, items: section.items })),
+                ]
+                  .filter((block) => block.items.length)
+                  .map((block) => (
+                    <div key={block.key}>
+                      <h2 className="mb-3 text-sm font-semibold">{block.title}</h2>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {block.items.map((item) => (
+                          <li key={item} className="flex gap-2">
+                            <Check className="mt-0.5 size-4 shrink-0 text-gold" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>

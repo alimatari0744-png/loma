@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, LogIn, Mail, Menu, Minus, Phone, Plus, Search, ShoppingBag, Trash2, UserRound } from "lucide-react";
+import { ChevronDown, Droplets, Home, Info, LogIn, LogOut, Mail, Menu, Minus, Phone, Plus, Search, ShoppingBag, Trash2, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +12,10 @@ import { useSiteStore } from "@/components/site-store-context";
 import { formatPrice, type CartEntry } from "@/lib/products";
 
 const links = [
-  { label: "الرئيسية", to: "/" as const },
-  { label: "المجموعة", to: "/products" as const },
-  { label: "روتين لوما", to: "/ritual" as const },
-  { label: "عن لوما", to: "/about" as const },
+  { label: "الرئيسية", to: "/" as const, icon: Home },
+  { label: "المجموعة", to: "/products" as const, icon: ShoppingBag },
+  { label: "روتين لوما", to: "/ritual" as const, icon: Droplets },
+  { label: "عن لوما", to: "/about" as const, icon: Info },
 ];
 
 export function BrandMark({ compact = false, centerWord = false }: { compact?: boolean; centerWord?: boolean }) {
@@ -233,7 +233,9 @@ function CartSheet() {
 }
 
 function MobileNav() {
-  const { customer } = useCustomerAccount();
+  const { customer, logout } = useCustomerAccount();
+  const itemClass =
+    "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-[13px] text-muted-foreground transition-colors hover:bg-[#f6f0e6] hover:text-foreground aria-[current=page]:bg-[#2c2820] aria-[current=page]:text-[#f7f1e6] aria-[current=page]:hover:bg-[#2c2820] aria-[current=page]:hover:text-[#f7f1e6]";
 
   return (
     <Sheet>
@@ -245,45 +247,59 @@ function MobileNav() {
       <SheetContent
         side="right"
         dir="rtl"
-        className="flex w-1/2 max-w-none flex-col border-l-border bg-background p-0 sm:max-w-none [&>button]:hidden"
+        overlayClassName="bg-[#2c2820]/30"
+        className="flex w-72 max-w-none flex-col gap-0 rounded-l-[1.75rem] border-l border-[#e6dcc8] bg-[#fcfaf6] p-0 shadow-[0_20px_60px_rgba(44,40,32,0.16)] sm:max-w-none [&>button]:hidden"
       >
-        <SheetHeader className="space-y-0 border-b border-border/80 px-5 py-5 text-right">
+        <SheetHeader className="flex-row items-center justify-between space-y-0 border-b border-[#e6dcc8] px-4 py-4 text-right sm:text-right">
           <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
           <SheetDescription className="sr-only">روابط صفحات متجر لوما</SheetDescription>
           <BrandMark compact />
+          <SheetClose asChild>
+            <button
+              type="button"
+              className="grid size-9 place-items-center rounded-full text-muted-foreground hover:text-foreground"
+              aria-label="إغلاق"
+            >
+              <X className="size-4" strokeWidth={1.5} />
+            </button>
+          </SheetClose>
         </SheetHeader>
 
-        <nav className="flex flex-1 flex-col gap-1 px-3 py-5">
-          {links.map((item) => (
-            <SheetClose asChild key={item.to}>
-              <Link
-                to={item.to}
-                className="rounded-sm px-3 py-3 text-[15px] text-foreground/90 transition-colors hover:bg-secondary"
-                activeProps={{ className: "bg-secondary text-gold" }}
-                activeOptions={{ exact: item.to === "/" }}
-              >
-                {item.label}
-              </Link>
-            </SheetClose>
-          ))}
-        </nav>
-
-        <div className="mt-auto border-t border-border/80 px-3 py-4">
+        <nav className="space-y-1 p-3">
+          {links.map((item) => {
+            const Icon = item.icon;
+            return (
+              <SheetClose asChild key={item.to}>
+                <Link
+                  to={item.to}
+                  className={itemClass}
+                  activeOptions={{ exact: item.to === "/" }}
+                >
+                  <Icon strokeWidth={1.25} className="size-5 group-aria-[current=page]:text-gold" />
+                  <span className="flex-1 text-right">{item.label}</span>
+                </Link>
+              </SheetClose>
+            );
+          })}
           <SheetClose asChild>
-            <Link
-              to="/account"
-              className="flex items-center gap-3 rounded-sm px-3 py-3 text-[15px] transition-colors hover:bg-secondary"
-              activeProps={{ className: "bg-secondary text-gold" }}
-            >
+            <Link to="/account" className={itemClass}>
               {customer ? (
-                <UserRound className="size-4 shrink-0" strokeWidth={1.5} />
+                <UserRound strokeWidth={1.25} className="size-5 group-aria-[current=page]:text-gold" />
               ) : (
-                <LogIn className="size-4 shrink-0" strokeWidth={1.5} />
+                <LogIn strokeWidth={1.25} className="size-5 group-aria-[current=page]:text-gold" />
               )}
-              <span>{customer ? "حسابي" : "دخول / حسابي"}</span>
+              <span className="flex-1 text-right">{customer ? "حسابي" : "دخول / حسابي"}</span>
             </Link>
           </SheetClose>
-        </div>
+          {customer && (
+            <SheetClose asChild>
+              <button type="button" className={itemClass} onClick={() => void logout()}>
+                <LogOut strokeWidth={1.25} className="size-5" />
+                <span className="flex-1 text-right">تسجيل الخروج</span>
+              </button>
+            </SheetClose>
+          )}
+        </nav>
       </SheetContent>
     </Sheet>
   );

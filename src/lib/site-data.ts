@@ -241,6 +241,13 @@ export function hydrateSiteMedia(data: SiteData): SiteData {
       ...product,
       image: resolveMediaUrl(product.image),
       gallery: (product.gallery ?? []).map((item) => resolveMediaUrl(item)),
+      sections: Array.isArray(product.sections)
+        ? product.sections.map((section, index) => ({
+            id: String(section?.id || `section-${product.id}-${index}`),
+            title: String(section?.title ?? ""),
+            items: Array.isArray(section?.items) ? section.items.map(String) : [],
+          }))
+        : [],
     })),
     orders: data.orders.map((order) => ({
       ...order,
@@ -343,6 +350,7 @@ export function emptyProduct(id: number): Product {
     description: "وصف المنتج",
     contents: [],
     highlights: [],
+    sections: [],
     category: "مزيل المكياج",
     image: media.bottle100,
     gallery: [media.bottle100],

@@ -8,6 +8,7 @@ import {
   Image as ImageLucide,
   LayoutGrid,
   LogOut,
+  Menu,
   MessageSquare,
   Package,
   Pencil,
@@ -17,6 +18,7 @@ import {
   ShoppingBag,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { StarRating } from "@/components/star-rating";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,7 @@ function AdminPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+  const [navOpen, setNavOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -73,7 +76,7 @@ function AdminPage() {
     return (
       <div className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#f3e6c8_0%,#f6f1e8_42%,#efe8dc_100%)] px-5" dir="rtl">
         <form
-          className="w-full max-w-md border border-[#e6dcc8] bg-white/90 px-8 py-11 shadow-[0_24px_80px_rgba(68,52,28,0.08)]"
+          className="w-full max-w-md rounded-[1.35rem] border border-[#e6dcc8] bg-white/90 px-8 py-11 shadow-[0_24px_80px_rgba(68,52,28,0.08)]"
           onSubmit={async (event) => {
             event.preventDefault();
             setError("");
@@ -129,8 +132,17 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8f3ea_0%,#f3eee6_40%,#efe8dc_100%)] text-foreground" dir="rtl">
       <header className="sticky top-0 z-30 border-b border-[#e7dcc8] bg-[#fcfaf6]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-          <div>
+        <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
+          <button
+            type="button"
+            className="grid size-10 place-items-center rounded-full border border-[#e0d4c0] bg-white/70 text-foreground"
+            aria-label="فتح التنقل"
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen(true)}
+          >
+            <Menu className="size-5" strokeWidth={1.5} />
+          </button>
+          <div className="pointer-events-none absolute left-[calc(50%+18px)] top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
             <p className="text-[10px] font-medium tracking-[0.32em] text-gold">LOMA</p>
             <h1 className="mt-1 text-lg font-semibold leading-none tracking-tight">لوحة التحكم</h1>
           </div>
@@ -140,14 +152,20 @@ function AdminPage() {
                 <Check className="size-3.5" strokeWidth={1.5} /> تم الحفظ
               </span>
             )}
-            <Button asChild variant="outline" className="h-10 rounded-none border-[#e0d4c0] bg-white/70 px-4 text-sm">
-              <Link to="/">
-                عرض الموقع <ArrowUpRight className="size-3.5" strokeWidth={1.25} />
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="size-10 rounded-full border-0 bg-transparent shadow-none hover:bg-transparent"
+              aria-label="عرض الموقع"
+            >
+              <Link to="/" aria-label="عرض الموقع">
+                <ArrowUpRight className="size-4" strokeWidth={1.25} />
               </Link>
             </Button>
             <Button
               variant="ghost"
-              className="h-10 rounded-none px-3 text-muted-foreground hover:text-foreground"
+              className="h-10 rounded-full px-3 text-muted-foreground hover:text-foreground"
               onClick={store.logoutAdmin}
             >
               <LogOut className="size-4" strokeWidth={1.25} />
@@ -157,44 +175,68 @@ function AdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-8 lg:grid-cols-[230px_1fr]">
-        <aside className="h-fit border border-[#e6dcc8] bg-white/80 p-3 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
-          <nav className="space-y-1">
-            {tabs.map((item) => {
-              const Icon = item.icon;
-              const active = tab === item.id;
-              const count =
-                item.id === "products"
-                  ? store.products.length
-                  : item.id === "orders"
-                    ? store.orders.length
-                    : item.id === "reviews"
-                      ? store.reviews.length
-                      : null;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setTab(item.id)}
-                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-[13px] transition-colors ${
-                    active
-                      ? "bg-[#2c2820] text-[#f7f1e6]"
-                      : "text-muted-foreground hover:bg-[#f6f0e6] hover:text-foreground"
-                  }`}
-                >
-                  <Icon strokeWidth={1.15} className={`size-4 ${active ? "text-gold" : ""}`} />
-                  <span className="flex-1 text-right">{item.label}</span>
-                  {count !== null && (
-                    <span className={`text-[11px] ${active ? "text-[#f7f1e6]/70" : "text-muted-foreground"}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
+      {navOpen && (
+        <div className="fixed inset-0 z-40">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#2c2820]/30"
+            aria-label="إغلاق التنقل"
+            onClick={() => setNavOpen(false)}
+          />
+          <aside className="absolute inset-y-0 right-0 flex w-72 flex-col rounded-l-[1.75rem] border-l border-[#e6dcc8] bg-[#fcfaf6] shadow-[0_20px_60px_rgba(44,40,32,0.16)]">
+            <div className="flex items-center justify-between border-b border-[#e6dcc8] px-4 py-4">
+              <p className="text-sm font-medium">التنقل</p>
+              <button
+                type="button"
+                className="grid size-9 place-items-center rounded-full text-muted-foreground hover:text-foreground"
+                aria-label="إغلاق"
+                onClick={() => setNavOpen(false)}
+              >
+                <X className="size-4" strokeWidth={1.5} />
+              </button>
+            </div>
+            <nav className="space-y-1 p-3">
+              {tabs.map((item) => {
+                const Icon = item.icon;
+                const active = tab === item.id;
+                const count =
+                  item.id === "products"
+                    ? store.products.length
+                    : item.id === "orders"
+                      ? store.orders.length
+                      : item.id === "reviews"
+                        ? store.reviews.length
+                        : null;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setTab(item.id);
+                      setNavOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-[13px] transition-colors ${
+                      active
+                        ? "bg-[#2c2820] text-[#f7f1e6]"
+                        : "text-muted-foreground hover:bg-[#f6f0e6] hover:text-foreground"
+                    }`}
+                  >
+                    <Icon strokeWidth={1.25} className={`size-5 ${active ? "text-gold" : ""}`} />
+                    <span className="flex-1 text-right">{item.label}</span>
+                    {count !== null && (
+                      <span className={`text-[11px] ${active ? "text-[#f7f1e6]/70" : "text-muted-foreground"}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
 
+      <div className="mx-auto max-w-6xl px-5 py-8">
         <main className="min-w-0 space-y-5">
           {tab === "overview" && <OverviewPanel />}
 
@@ -332,7 +374,7 @@ function OverviewPanel() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="flex items-center gap-6 border border-[#e6dcc8] bg-white/85 px-6 py-7 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+        <div className="flex items-center gap-6 rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-7 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
           <div
             className="grid size-28 shrink-0 place-items-center rounded-full"
             style={{
@@ -352,7 +394,7 @@ function OverviewPanel() {
           </div>
         </div>
 
-        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+        <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
           <h3 className="text-sm font-semibold">توزيع المنتجات</h3>
           <div className="mt-5 space-y-4">
             {categoryBars.map((item) => (
@@ -363,7 +405,7 @@ function OverviewPanel() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+        <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
           <h3 className="text-sm font-semibold">حالات الطلبات</h3>
           <div className="mt-5 space-y-4">
             {statusBars.map((item) => (
@@ -371,7 +413,7 @@ function OverviewPanel() {
             ))}
           </div>
         </div>
-        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+        <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
           <h3 className="text-sm font-semibold">آخر الطلبات</h3>
           {recent.length === 0 ? (
             <p className="mt-5 text-sm leading-7 text-muted-foreground">
@@ -407,8 +449,8 @@ function ProgressRow({ label, value, suffix }: { label: string; value: number; s
           {suffix} · {value}%
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden bg-[#efe6d6]">
-        <div className="h-full bg-gold transition-all" style={{ width: `${value}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-[#efe6d6]">
+        <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -426,9 +468,11 @@ function StatCard({
   icon: typeof Package;
 }) {
   return (
-    <div className="border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
+    <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]">
       <div className="mb-4 flex items-center gap-2.5">
-        <Icon strokeWidth={1.15} className="size-4 text-gold" />
+        <span className="grid size-8 place-items-center rounded-full bg-[#f6f0e6]">
+          <Icon strokeWidth={1.15} className="size-4 text-gold" />
+        </span>
         <span className="text-[12px] text-muted-foreground">{label}</span>
       </div>
       <p className="text-[1.7rem] font-semibold tracking-tight">{value}</p>
@@ -458,7 +502,7 @@ function ProductsPanel({
     <div className="space-y-5">
       <div className="flex items-end justify-between gap-3">
         <PanelHeader title="المنتجات" subtitle={`${products.length} منتج في المجموعة.`} />
-        <Button variant="luxury" className="h-10 shrink-0 rounded-none px-4" onClick={onCreate}>
+        <Button variant="luxury" className="h-10 shrink-0 rounded-full px-4" onClick={onCreate}>
           <Plus className="size-4" strokeWidth={1.25} /> منتج جديد
         </Button>
       </div>
@@ -469,8 +513,8 @@ function ProductsPanel({
 
       <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.id} className="flex gap-4 border border-[#e6dcc8] bg-white/85 p-3.5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
-            <img src={product.image} alt="" className="size-[4.5rem] object-cover" />
+          <div key={product.id} className="flex gap-4 rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 p-3.5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+            <img src={product.image} alt="" className="size-[4.5rem] rounded-2xl object-cover" />
             <div className="min-w-0 flex-1 self-center">
               <p className="font-medium tracking-tight">{product.name}</p>
               <p className="mt-1 text-[13px] text-muted-foreground">
@@ -482,7 +526,7 @@ function ProductsPanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-none border-border/70 px-3"
+                className="h-9 rounded-full border-border/70 px-3"
                 onClick={() => onEdit(product)}
               >
                 <Pencil className="size-3.5" strokeWidth={1.25} /> تعديل
@@ -490,7 +534,7 @@ function ProductsPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 rounded-none text-muted-foreground hover:text-destructive"
+                className="h-9 rounded-full text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(product.id)}
               >
                 <Trash2 className="size-3.5" strokeWidth={1.25} /> حذف
@@ -512,40 +556,48 @@ function ProductEditor({
   onSave: (product: Product) => void | Promise<void>;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<Product>(product);
+  const [draft, setDraft] = useState<Product>(() => {
+    const gallery = product.gallery?.length ? [...product.gallery] : [];
+    if (product.image && !gallery.includes(product.image)) gallery.unshift(product.image);
+    return { ...product, gallery, sections: product.sections ?? [] };
+  });
   const { saving } = useSiteStore();
 
   const setField = <K extends keyof Product>(key: K, value: Product[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const onImage = async (file?: File | null) => {
-    if (!file) return;
-    const url = await fileToDataUrl(file);
-    setDraft((current) => ({
-      ...current,
-      image: url,
-      gallery: current.gallery.includes(url) ? current.gallery : [url, ...current.gallery],
-    }));
+  const onImages = async (files?: FileList | null) => {
+    if (!files?.length) return;
+    const urls = await Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
+    setDraft((current) => {
+      const gallery = [...current.gallery];
+      for (const url of urls) {
+        if (!gallery.includes(url)) gallery.push(url);
+      }
+      return { ...current, image: current.image || urls[0] || "", gallery };
+    });
   };
 
   return (
     <form
-      className="space-y-5 border border-[#e6dcc8] bg-white/90 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]"
+      className="space-y-5 rounded-[1.35rem] border border-[#e6dcc8] bg-white/90 px-5 py-6 shadow-[0_10px_40px_rgba(70,52,24,0.04)]"
       onSubmit={async (event: FormEvent) => {
         event.preventDefault();
+        const gallery = draft.gallery.filter(Boolean);
         await onSave({
           ...draft,
-          contents: (Array.isArray(draft.contents) ? draft.contents : String(draft.contents).split("\n"))
-            .map((s) => String(s).trim())
-            .filter(Boolean),
-          highlights: (Array.isArray(draft.highlights)
-            ? draft.highlights
-            : String(draft.highlights).split("\n")
-          )
-            .map((s) => String(s).trim())
-            .filter(Boolean),
-          gallery: draft.gallery.length ? draft.gallery : [draft.image],
+          contents: cleanLines(draft.contents),
+          highlights: cleanLines(draft.highlights),
+          sections: (draft.sections ?? [])
+            .map((section) => ({
+              ...section,
+              title: section.title.trim(),
+              items: section.items.map((item) => item.trim()).filter(Boolean),
+            }))
+            .filter((section) => section.title),
+          image: draft.image || gallery[0] || "",
+          gallery: gallery.length ? gallery : draft.image ? [draft.image] : [],
         });
       }}
     >
@@ -567,7 +619,7 @@ function ProductEditor({
         </Field>
         <Field label="التصنيف">
           <select
-            className="h-11 w-full border border-input bg-background px-3 text-sm"
+            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
             value={draft.category}
             onChange={(e) => setField("category", e.target.value as Product["category"])}
           >
@@ -597,32 +649,84 @@ function ProductEditor({
         />
       </Field>
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="المحتويات (سطر لكل عنصر)">
-          <Textarea
-            className="min-h-24 rounded-none"
-            value={Array.isArray(draft.contents) ? draft.contents.join("\n") : ""}
-            onChange={(e) => setDraft((c) => ({ ...c, contents: e.target.value.split("\n") }))}
-          />
-        </Field>
-        <Field label="المميزات (سطر لكل عنصر)">
-          <Textarea
-            className="min-h-24 rounded-none"
-            value={Array.isArray(draft.highlights) ? draft.highlights.join("\n") : ""}
-            onChange={(e) => setDraft((c) => ({ ...c, highlights: e.target.value.split("\n") }))}
-          />
-        </Field>
+        <LineListField
+          label="المحتويات"
+          value={draft.contents}
+          onChange={(contents) => setDraft((current) => ({ ...current, contents }))}
+        />
+        <LineListField
+          label="المميزات"
+          value={draft.highlights}
+          onChange={(highlights) => setDraft((current) => ({ ...current, highlights }))}
+        />
+        {(draft.sections ?? []).map((section) => (
+          <div key={section.id} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-9 rounded-none"
+                value={section.title}
+                placeholder="اسم الخانة، مثل المكونات"
+                aria-label="اسم الخانة"
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    sections: (current.sections ?? []).map((item) =>
+                      item.id === section.id ? { ...item, title: event.target.value } : item,
+                    ),
+                  }))
+                }
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-9 shrink-0 rounded-full text-muted-foreground hover:text-destructive"
+                aria-label="حذف الخانة"
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    sections: (current.sections ?? []).filter((item) => item.id !== section.id),
+                  }))
+                }
+              >
+                <Trash2 className="size-3.5" strokeWidth={1.25} />
+              </Button>
+            </div>
+            <Textarea
+              className="min-h-24 rounded-none"
+              placeholder="سطر لكل عنصر"
+              value={section.items.join("\n")}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  sections: (current.sections ?? []).map((item) =>
+                    item.id === section.id ? { ...item, items: event.target.value.split("\n") } : item,
+                  ),
+                }))
+              }
+            />
+          </div>
+        ))}
       </div>
-      <Field label="صورة المنتج">
-        <div className="flex flex-wrap items-center gap-4">
-          <img src={draft.image} alt="" className="size-24 object-cover" />
-          <Input
-            type="file"
-            accept="image/*"
-            className="max-w-xs rounded-none"
-            onChange={(e) => onImage(e.target.files?.[0])}
-          />
-        </div>
-      </Field>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-10 rounded-none px-4"
+        onClick={() =>
+          setDraft((current) => ({
+            ...current,
+            sections: [...(current.sections ?? []), { id: `section-${Date.now()}`, title: "", items: [""] }],
+          }))
+        }
+      >
+        <Plus className="size-4" strokeWidth={1.25} /> إضافة خانة
+      </Button>
+      <ProductGalleryEditor
+        image={draft.image}
+        gallery={draft.gallery}
+        onChange={(next) => setDraft((current) => ({ ...current, ...next }))}
+        onAdd={onImages}
+      />
       <div className="flex gap-2 pt-1">
         <Button type="submit" variant="luxury" className="h-10 rounded-none px-5" disabled={saving}>
           {saving ? "جارٍ الحفظ…" : "حفظ المنتج"}
@@ -653,7 +757,7 @@ function OrdersPanel({
           title="الطلبات"
           subtitle="تظهر هنا عند إتمام الشراء. حساب الإدارة يضبط المرحلة وشركة الشحن، والمساعد يقرأها كما هي."
         />
-        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
+        <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
           لا توجد طلبات بعد. المراحل المتاحة: {statuses.join("، ")}.
         </div>
       </div>
@@ -668,7 +772,7 @@ function OrdersPanel({
       />
       <div className="space-y-3">
         {orders.map((order) => (
-          <article key={order.id} className="border border-[#e6dcc8] bg-white/85 px-5 py-5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+          <article key={order.id} className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-5 py-5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold tracking-tight">{order.id}</p>
@@ -694,7 +798,7 @@ function OrdersPanel({
             )}
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <select
-                className="h-10 border border-input bg-background px-3 text-sm"
+                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                 value={order.status}
                 onChange={(e) => onStatus(order.id, e.target.value as OrderStatus)}
               >
@@ -749,7 +853,7 @@ function ReviewsPanel({
           title="التقييمات"
           subtitle="تظهر هنا تعليقات العميلات بعد الشراء. ثبّتي ما تريدينه في الصفحة الرئيسية أو احذفي ما لا يناسب."
         />
-        <div className="border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
+        <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
           لا توجد تقييمات بعد. عند طلب منتج وكتابة رأي سيظهر هنا.
         </div>
       </div>
@@ -1052,27 +1156,31 @@ function ImagesPanel({
     setImages((current) => ({ ...current, [key]: url }));
   };
 
-  const uploadProduct = async (id: number, file?: File | null) => {
-    if (!file) return;
-    const url = await fileToDataUrl(file);
-    setProductDrafts((current) =>
-      current.map((product) =>
-        product.id === id
-          ? {
-              ...product,
-              image: url,
-              gallery: [url, ...product.gallery.filter((item) => item !== product.image && item !== url)],
-            }
-          : product,
-      ),
-    );
-  };
-
-  const fields: { key: keyof SiteContent["images"]; label: string }[] = [
-    { key: "logo", label: "الشعار" },
-    { key: "hero", label: "صورة الصفحة الرئيسية / المجموعة" },
-    { key: "ritualPads", label: "صورة صفحة الروتين (قطن)" },
-    { key: "ritualBottle", label: "صورة صفحة الروتين (زجاجة)" },
+  const fields: { key: keyof SiteContent["images"]; label: string; hint: string; frame: string }[] = [
+    {
+      key: "logo",
+      label: "الشعار",
+      hint: "512×512 بكسل، خلفية شفافة. يظهر مربعًا صغيرًا بجانب كلمة LOMA.",
+      frame: "mx-auto aspect-square w-28 object-contain",
+    },
+    {
+      key: "hero",
+      label: "صورة الصفحة الرئيسية / المجموعة",
+      hint: "1600×2000 بكسل (نسبة 4:5). الرئيسية تعرضها في عمود طويل، وصفحة المجموعة تقصّها عرضيًا. ضعي الموضوع في الوسط.",
+      frame: "aspect-[4/5] w-full object-cover",
+    },
+    {
+      key: "ritualPads",
+      label: "صورة صفحة الروتين (قطن)",
+      hint: "1400×1800 بكسل (نسبة 3:4). تظهر بنصف عرض الصفحة وارتفاع طويل.",
+      frame: "aspect-[3/4] w-full object-cover",
+    },
+    {
+      key: "ritualBottle",
+      label: "صورة صفحة الروتين (زجاجة)",
+      hint: "1400×1800 بكسل (نسبة 3:4). تظهر بنصف عرض الصفحة وارتفاع طويل.",
+      frame: "aspect-[3/4] w-full object-cover",
+    },
   ];
 
   return (
@@ -1080,7 +1188,7 @@ function ImagesPanel({
       <div className="flex items-end justify-between gap-3">
         <PanelHeader
           title="الصور"
-          subtitle="كل صور الموقع والمنتجات من ثوبابيس. استبدلي أي صورة ثم احفظي ليتم رفعها هناك."
+          subtitle="استبدلي صور الصفحات، وأضيفي أكثر من صورة لكل منتج ثم فعّلي الصورة التي تظهر في البطاقة."
         />
         <Button
           variant="luxury"
@@ -1094,9 +1202,10 @@ function ImagesPanel({
       <Section title="صور الصفحات">
         <div className="grid gap-4 sm:grid-cols-2">
           {fields.map((field) => (
-            <div key={field.key} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
-              <p className="mb-3 text-[13px] text-muted-foreground">{field.label}</p>
-              <img src={images[field.key]} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
+            <div key={field.key} className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+              <p className="mb-1 text-[13px] text-muted-foreground">{field.label}</p>
+              <p className="mb-3 text-[12px] leading-5 text-muted-foreground">{field.hint}</p>
+              <img src={images[field.key]} alt="" className={`mb-4 ${field.frame}`} />
               <Input
                 type="file"
                 accept="image/*"
@@ -1110,15 +1219,31 @@ function ImagesPanel({
       <Section title="صور المنتجات">
         <div className="grid gap-4 sm:grid-cols-2">
           {productDrafts.map((product) => (
-            <div key={product.id} className="border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+            <div key={product.id} className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 p-4 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
               <p className="mb-1 text-[13px] font-medium">{product.name}</p>
               <p className="mb-3 text-[12px] text-muted-foreground">{product.size}</p>
-              <img src={product.image} alt="" className="mb-4 aspect-[4/3] w-full object-cover" />
-              <Input
-                type="file"
-                accept="image/*"
-                className="rounded-none"
-                onChange={(e) => uploadProduct(product.id, e.target.files?.[0])}
+              <ProductGalleryEditor
+                image={product.image}
+                gallery={product.gallery?.length ? product.gallery : product.image ? [product.image] : []}
+                onChange={(next) =>
+                  setProductDrafts((current) =>
+                    current.map((item) => (item.id === product.id ? { ...item, ...next } : item)),
+                  )
+                }
+                onAdd={async (files) => {
+                  if (!files?.length) return;
+                  const urls = await Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
+                  setProductDrafts((current) =>
+                    current.map((item) => {
+                      if (item.id !== product.id) return item;
+                      const gallery = [...(item.gallery ?? [])];
+                      for (const url of urls) {
+                        if (!gallery.includes(url)) gallery.push(url);
+                      }
+                      return { ...item, image: item.image || urls[0] || "", gallery };
+                    }),
+                  );
+                }}
               />
             </div>
           ))}
@@ -1139,7 +1264,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
+    <section className="rounded-[1.35rem] border border-[#e6dcc8] bg-white/85 px-5 py-6 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
       <h3 className="mb-5 text-[13px] font-medium tracking-wide text-gold">{title}</h3>
       {children}
     </section>
@@ -1152,5 +1277,99 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function cleanLines(value: string[] | string) {
+  return (Array.isArray(value) ? value : String(value).split("\n")).map((item) => item.trim()).filter(Boolean);
+}
+
+function LineListField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string[];
+  onChange: (items: string[]) => void;
+}) {
+  return (
+    <Field label={`${label} (سطر لكل عنصر)`}>
+      <Textarea
+        className="min-h-24 rounded-none"
+        value={Array.isArray(value) ? value.join("\n") : ""}
+        onChange={(event) => onChange(event.target.value.split("\n"))}
+      />
+    </Field>
+  );
+}
+
+function ProductGalleryEditor({
+  image,
+  gallery,
+  onChange,
+  onAdd,
+}: {
+  image: string;
+  gallery: string[];
+  onChange: (next: { image: string; gallery: string[] }) => void;
+  onAdd: (files?: FileList | null) => void | Promise<void>;
+}) {
+  const frames = gallery.length ? gallery : image ? [image] : [];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[13px] text-muted-foreground">صور المنتج</p>
+      <p className="text-[12px] leading-5 text-muted-foreground">
+        الأبعاد المناسبة: 1200×1500 بكسل (نسبة 4:5). بطاقة المنتج وصفحته تعرضان الصورة بهذه النسبة، وشريط الرئيسية يقصّها قليلًا إلى 3:4، فاجعلي المنتج في الوسط. يمكن إضافة أكثر من صورة، وتفعيل الصورة التي تظهر أولًا.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {frames.map((url, index) => {
+          const active = url === image;
+          return (
+            <div key={`${index}-${url.slice(0, 24)}`} className="w-28">
+              <button
+                type="button"
+                className={`block w-full overflow-hidden rounded-2xl border ${active ? "border-[#c2a15a]" : "border-[#e6dcc8]"}`}
+                onClick={() => onChange({ image: url, gallery: frames })}
+                aria-label={active ? "الصورة المفعّلة" : "تفعيل هذه الصورة"}
+              >
+                <img src={url} alt="" className="aspect-[4/5] w-full object-cover" />
+              </button>
+              <div className="mt-1.5 flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  className={`text-[11px] ${active ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => onChange({ image: url, gallery: frames })}
+                >
+                  {active ? "مفعّلة" : "تفعيل"}
+                </button>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="حذف الصورة"
+                  onClick={() => {
+                    const next = frames.filter((item) => item !== url);
+                    onChange({ image: active ? (next[0] ?? "") : image, gallery: next });
+                  }}
+                >
+                  <Trash2 className="size-3.5" strokeWidth={1.25} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <Input
+        type="file"
+        accept="image/*"
+        multiple
+        className="max-w-xs rounded-none"
+        onChange={(event) => {
+          void onAdd(event.target.files);
+          event.target.value = "";
+        }}
+      />
+    </div>
   );
 }

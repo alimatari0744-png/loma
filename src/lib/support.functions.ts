@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-import { orderStatusMeaning, type Order, type SiteData } from "@/lib/site-data";
+import { hydrateSiteMedia, orderStatusMeaning, type Order, type SiteData } from "@/lib/site-data";
 import { supportPhones } from "@/lib/support";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
@@ -19,21 +19,27 @@ type SupportResult = {
 };
 
 const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+let storeCache: { at: number; data: SiteData | null } | null = null;
 
 function getSupabaseUrl() {
   return process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://pjinaxnndcdstcusuzvt.supabase.co";
 }
 
 async function loadStore(): Promise<SiteData | null> {
+  if (storeCache && Date.now() - storeCache.at < 30_000) return storeCache.data;
   try {
-    const res = await fetch(
-      `${getSupabaseUrl()}/storage/v1/object/public/loma-cms/site-data.json?t=${Date.now()}`,
-      { cache: "no-store" },
-    );
-    if (!res.ok) return null;
-    return (await res.json()) as SiteData;
+    const res = await fetch(`${getSupabaseUrl()}/storage/v1/object/public/loma-cms/site-data.json`, {
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      storeCache = { at: Date.now(), data: storeCache?.data ?? null };
+      return storeCache.data;
+    }
+    const data = hydrateSiteMedia((await res.json()) as SiteData);
+    storeCache = { at: Date.now(), data };
+    return data;
   } catch {
-    return null;
+    return storeCache?.data ?? null;
   }
 }
 
@@ -94,23 +100,36 @@ function orderContext(orders: Order[]) {
 function storeContext(data: SiteData | null) {
   if (!data) return "تعذر تحميل بيانات المتجر.";
   const products = data.products
-    .map((product) =>
-      [
+    .map((product) => {
+      const sections = (product.sections ?? [])
+        .filter((section) => section.title.trim() && section.items.some((item) => item.trim()))
+        .map(
+          (section) =>
+            `${section.title.trim()}: ${section.items.map((item) => item.trim()).filter(Boolean).join("، ")}`,
+        );
+      const variants = (product.variants ?? []).map((variant) => `${variant.label} = ${variant.price} ريال`);
+      return [
         `المنتج: ${product.name}`,
+        `المعرّف: ${product.id}`,
         `الحجم: ${product.size}`,
         `السعر: ${product.price} ريال`,
         `التصنيف: ${product.category}`,
+        product.badge ? `الشارة: ${product.badge}` : "",
+        variants.length ? `${product.variantLabel || "الخيارات"}: ${variants.join("، ")}` : "",
         `الوصف: ${product.description}`,
-        `المحتويات: ${(product.contents ?? []).join("، ") || "غير مذكورة"}`,
-        `المميزات: ${(product.highlights ?? []).join("، ") || "غير مذكورة"}`,
+        `المحتويات: ${(product.contents ?? []).map((item) => item.trim()).filter(Boolean).join("، ") || "غير مذكورة"}`,
+        `المميزات: ${(product.highlights ?? []).map((item) => item.trim()).filter(Boolean).join("، ") || "غير مذكورة"}`,
+        ...sections,
         `ملاحظة: ${product.note}`,
-      ].join(" | "),
-    )
+      ]
+        .filter(Boolean)
+        .join(" | ");
+    })
     .join("\n");
   return [
     `البريد الظاهر في الموقع: ${data.content.footer.email}`,
     `أرقام الدعم: ${supportPhones(data.content.footer.phone).join("، ") || "غير مضافة"}`,
-    "مواصفات المنتجات كما هي في المتجر:",
+    "كل منتج أدناه مستقل. خاناته هي معرفته الوحيدة:",
     products,
     "روتين الاستخدام:",
     data.content.ritual.step1Text,
@@ -122,7 +141,8 @@ function systemPrompt(data: SiteData | null, orders: Order[]) {
   return [
     "أنتِ مساعدة عملاء متجر لوما فقط. تتحدثين بالعربية، بهدوء واختصار، وبصيغة المؤنث.",
     "مهمتك مساعدة العميلة في مشاكل الطلب والمنتجات والاستخدام: تأخر الطلب، حالة الطلب، طريقة الاستخدام، ومواصفات المنتجات.",
-    "إذا سُئلتِ مما يُصنع منتج أو عن مواصفاته، لخّصي الوصف والمحتويات والمميزات الموجودة فقط بلغة قصيرة. لا تخترعي مكوّنات أو خامات غير مذكورة. إذا لم تُذكر التركيبة، قولي إن المتاح هو الوصف والمحتويات المسجّلة فقط.",
+    "إذا سألت العميلة عن منتج، حدّدي المنتج من اسمه وحجمه. إذا تشابهت الأسماء فالحجم والتصنيف والمعرّف يفصلان بينها. لا تنقلي خانة من منتج إلى منتج آخر.",
+    "كل خانة مسجّلة للمنتج مصدر معرفة: الوصف، المحتويات، المميزات، الملاحظة، الشارة، خيارات الحجم أو العدد، وأي عنوان أضافته الإدارة مثل المكونات. لخّصي المطلوب من هذه الخانات فقط. لا تخترعي مكوّنًا أو خامة أو مقاسًا غير مكتوب. إذا لم تُذكر الخانة، قولي إن هذه المعلومة غير مسجّلة لهذا المنتج.",
     "لا تخترعي حالة طلب أو اسم شركة شحن أو موعد توصيل أو سياسة استرجاع غير موجودة في البيانات.",
     "إذا سألت عن التأخر أو أين الطلب، أجيب من الحالة المضبوطة في لوحة التحكم فقط: المسودة والتحضير والإعداد تعني أنه لم يصل شركة الشحن، وعند شركة الشحن أو تم الشحن تعني أنه خرج من لوما إلى الشركة المسجّلة.",
     "لا يوجد وعد زمني منشور للتوصيل. اشرحي الحالة الحالية فقط.",
@@ -139,7 +159,7 @@ function systemPrompt(data: SiteData | null, orders: Order[]) {
 async function askGemini(apiKey: string, system: string, messages: ChatMessage[]) {
   let lastError = "تعذر الاتصال بمساعدة لوما";
   for (const model of MODELS) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: {
@@ -154,6 +174,7 @@ async function askGemini(apiKey: string, system: string, messages: ChatMessage[]
           })),
           generationConfig: {
             temperature: 0.2,
+            maxOutputTokens: 400,
             responseMimeType: "application/json",
           },
         }),
@@ -165,10 +186,11 @@ async function askGemini(apiKey: string, system: string, messages: ChatMessage[]
       if (res.status === 404) break;
       if (!res.ok) {
         lastError = body?.error?.message || "تعذر الاتصال بمساعدة لوما";
-        if (res.status === 429 || res.status >= 500) {
-          await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+        if ((res.status === 429 || res.status >= 500) && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
           continue;
         }
+        if (res.status === 429 || res.status >= 500) break;
         throw new Error(lastError);
       }
       const text = body?.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";

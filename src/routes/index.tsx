@@ -190,7 +190,8 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="bg-foreground px-5 py-20 text-primary-foreground md:px-10 md:py-28 lg:px-14">
+      <div className="bg-[linear-gradient(to_bottom,var(--secondary)_50%,var(--background)_50%)]">
+        <section className="overflow-hidden rounded-[1.75rem] bg-foreground px-5 py-20 text-primary-foreground md:px-10 md:py-28 lg:px-14">
         <div className="mx-auto grid max-w-[1320px] gap-12 md:grid-cols-[0.85fr_1.15fr] md:items-center md:gap-20">
           <div>
             <p className="mb-4 text-xs font-semibold text-gold">{content.homePromise.kicker}</p>
@@ -202,14 +203,14 @@ function HomePage() {
             <Button
               asChild
               variant="luxuryOutline"
-              className="mt-8 rounded-none border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground hover:text-foreground"
+              className="mt-8 rounded-full border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground hover:text-foreground"
             >
               <Link to="/about">
                 {content.homePromise.aboutCta} <ArrowLeft />
               </Link>
             </Button>
           </div>
-          <div className="grid gap-px bg-primary-foreground/15 sm:grid-cols-2">
+          <div className="grid gap-px overflow-hidden rounded-[1.35rem] bg-primary-foreground/15 sm:grid-cols-2">
             {content.homePromise.items.map((item) => (
               <div key={item} className="flex min-h-28 items-center gap-4 bg-foreground px-6 py-5">
                 <span className="grid size-8 shrink-0 place-items-center rounded-full border border-gold text-gold">
@@ -221,6 +222,7 @@ function HomePage() {
           </div>
         </div>
       </section>
+      </div>
 
       <section className="bg-background px-5 py-20 text-center md:py-28">
         <BrandSymbol className="mx-auto mb-6 size-10" />
@@ -229,7 +231,7 @@ function HomePage() {
           <br />
           {ctaTitle[1] ?? ""}
         </h2>
-        <Button asChild variant="luxury" size="luxury" className="mt-8 rounded-none px-10">
+        <Button asChild variant="luxury" size="luxury" className="mt-8 rounded-full px-10">
           <Link to="/products">
             {content.homeCta.button} <ArrowLeft />
           </Link>

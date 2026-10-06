@@ -2,6 +2,8 @@ import { media } from "@/lib/media";
 
 export type Variant = { id: number; label: string; price: number };
 
+export type ProductSection = { id: string; title: string; items: string[] };
+
 export type Product = {
   id: number;
   name: string;
@@ -11,6 +13,7 @@ export type Product = {
   description: string;
   contents: string[];
   highlights: string[];
+  sections?: ProductSection[];
   category: "مزيل المكياج" | "الوسادات" | "الباقات";
   image: string;
   gallery: string[];
