@@ -22,7 +22,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
     <article className="group relative min-w-0">
       <div className={`relative overflow-hidden rounded-[1.35rem] bg-secondary ${compact ? "aspect-[3/4]" : "aspect-[4/5]"}`}>
         <Link to="/products/$id" params={{ id: String(product.id) }} className="absolute inset-0 z-0 block">
-          <img src={product.image} alt={`${product.name} ${product.size}`} className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]" />
+          <img src={product.image} alt={`${product.name} ${product.size}`} loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]" />
           {product.badge && <span className="absolute right-4 top-4 rounded-full bg-foreground px-3 py-1.5 text-[10px] text-primary-foreground">{product.badge}</span>}
         </Link>
         <Button

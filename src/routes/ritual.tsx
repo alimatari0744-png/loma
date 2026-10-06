@@ -35,6 +35,8 @@ function RitualPage() {
           <img
             src={content.images.ritualPads}
             alt="روتين لوما والوسادات القطنية"
+            fetchPriority="high"
+            decoding="async"
             className="absolute inset-0 size-full object-cover"
           />
         </div>
@@ -106,6 +108,8 @@ function RitualPage() {
           <img
             src={content.images.ritualBottle}
             alt="مزيل ميسيلار لوما"
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover"
           />
         </div>

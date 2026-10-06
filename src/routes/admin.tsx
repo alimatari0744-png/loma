@@ -27,7 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSiteStore } from "@/components/site-store-context";
 import type { Product } from "@/lib/products";
 import { formatPrice } from "@/lib/products";
-import { emptyProduct, fileToDataUrl, orderStatuses, type OrderStatus, type Review, type SiteContent } from "@/lib/site-data";
+import { fileToCompressedDataUrl, type ImageSlot } from "@/lib/image-file";
+import { emptyProduct, orderStatuses, type OrderStatus, type Review, type SiteContent } from "@/lib/site-data";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -569,7 +570,7 @@ function ProductEditor({
 
   const onImages = async (files?: FileList | null) => {
     if (!files?.length) return;
-    const urls = await Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
+    const urls = await Promise.all(Array.from(files).map((file) => fileToCompressedDataUrl(file, "product")));
     setDraft((current) => {
       const gallery = [...current.gallery];
       for (const url of urls) {
@@ -1152,7 +1153,8 @@ function ImagesPanel({
 
   const upload = async (key: keyof SiteContent["images"], file?: File | null) => {
     if (!file) return;
-    const url = await fileToDataUrl(file);
+    const slot: ImageSlot = key === "logo" ? "logo" : key === "hero" ? "hero" : "ritual";
+    const url = await fileToCompressedDataUrl(file, slot);
     setImages((current) => ({ ...current, [key]: url }));
   };
 
@@ -1232,7 +1234,7 @@ function ImagesPanel({
                 }
                 onAdd={async (files) => {
                   if (!files?.length) return;
-                  const urls = await Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
+                  const urls = await Promise.all(Array.from(files).map((file) => fileToCompressedDataUrl(file, "product")));
                   setProductDrafts((current) =>
                     current.map((item) => {
                       if (item.id !== product.id) return item;

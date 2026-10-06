@@ -7,11 +7,11 @@ export function cmsPublicUrl(path: string) {
 }
 
 export const media = {
-  hero: cmsPublicUrl("images/hero.jpg"),
+  hero: `${cmsPublicUrl("images/hero.jpg")}?v=20261007`,
   logo: cmsPublicUrl("images/logo.png"),
-  bottle100: cmsPublicUrl("images/bottle-100.jpg"),
-  bottle50: cmsPublicUrl("images/bottle-50.jpg"),
-  pads: cmsPublicUrl("images/pads.jpg"),
+  bottle100: `${cmsPublicUrl("images/bottle-100.jpg")}?v=20261007`,
+  bottle50: `${cmsPublicUrl("images/bottle-50.jpg")}?v=20261007`,
+  pads: `${cmsPublicUrl("images/pads.jpg")}?v=20261007`,
 };
 
 const aliases: [string, string][] = [

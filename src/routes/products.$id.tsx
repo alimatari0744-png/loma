@@ -105,7 +105,7 @@ function ProductDetail() {
                 }}
                 onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
               >
-                <img src={activeImage} alt={product.name} className="size-full object-cover" />
+                <img src={activeImage} alt={product.name} decoding="async" className="size-full object-cover" />
                 {product.badge && (
                   <span className="absolute right-5 top-5 bg-foreground px-4 py-2 text-[10px] text-primary-foreground">
                     {product.badge}
@@ -148,7 +148,7 @@ function ProductDetail() {
                       }`}
                       aria-label={`عرض صورة المنتج ${index + 1}`}
                     >
-                      <img src={image} alt="" className="size-full object-cover" />
+                      <img src={image} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
                     </button>
                   ))}
                 </div>

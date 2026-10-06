@@ -39,6 +39,8 @@ function ProductsPage() {
         <img
           src={content.images.hero}
           alt="مجموعة لوما الكاملة"
+          fetchPriority="high"
+          decoding="async"
           className="absolute inset-0 size-full object-cover opacity-45"
         />
         <div className="absolute inset-0 bg-gradient-to-l from-foreground via-foreground/70 to-transparent" />

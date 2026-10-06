@@ -84,6 +84,8 @@ function HomePage() {
           <img
             src={content.images.hero}
             alt="مجموعة لوما لمزيل المكياج والوسادات القطنية"
+            fetchPriority="high"
+            decoding="async"
             className="size-full object-cover object-center"
           />
         </div>
@@ -150,6 +152,8 @@ function HomePage() {
           <img
             src={content.images.ritualPads}
             alt="وسادات لوما القطنية"
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 size-full object-cover"
           />
         </div>
