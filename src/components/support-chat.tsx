@@ -95,7 +95,7 @@ export function SupportChat() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [needsHuman, setNeedsHuman] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [phones, setPhones] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", text: greeting }]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -111,13 +111,13 @@ export function SupportChat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, needsHuman, open]);
+  }, [messages, supportOpen, open]);
 
   useEffect(() => {
     if (!account.ready) return;
     if (!account.customer) {
       setMessages([{ role: "assistant", text: greeting }]);
-      setNeedsHuman(false);
+      setSupportOpen(false);
       return;
     }
     let cancelled = false;
@@ -131,7 +131,7 @@ export function SupportChat() {
           ? [{ role: "assistant", text: greeting }, ...result.messages]
           : [{ role: "assistant", text: greeting }],
       );
-      setNeedsHuman(false);
+      setSupportOpen(false);
     };
     void load();
     return () => {
@@ -154,6 +154,7 @@ export function SupportChat() {
     const history = [...messages, { role: "user" as const, text: cleaned }];
     setMessages(history);
     setDraft("");
+    setSupportOpen(false);
     setBusy(true);
     const token = account.customer ? await sessionToken() : "";
     try {
@@ -164,7 +165,6 @@ export function SupportChat() {
         },
       });
       setPhones(result.phones);
-      setNeedsHuman((current) => current || result.needsHuman);
       const next = [...history, { role: "assistant" as const, text: result.reply }];
       setMessages(next);
       if (token) {
@@ -173,10 +173,9 @@ export function SupportChat() {
         });
       }
     } catch {
-      setNeedsHuman(true);
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: "تعذر إكمال الرد الآن. يمكنك التواصل مع الدعم عبر الرقم بالأسفل." },
+        { role: "assistant", text: "تعذر إكمال الرد الآن. يمكنك الضغط على «لم تُحل مشكلتي» للتواصل مع الدعم الفني." },
       ]);
     } finally {
       setBusy(false);
@@ -216,16 +215,21 @@ export function SupportChat() {
                 </p>
               ))}
               {busy && <p className="text-[13px] text-muted-foreground">جارٍ الرد…</p>}
-              {canEscalate && needsHuman && (
-                <div className="rounded-[1.35rem] border border-[#e6dcc8] bg-white px-4 py-4">
-                  <p className="text-sm leading-7">إذا بقيت المشكلة، تواصلي مع الدعم الفني:</p>
+              {canEscalate && supportOpen && (
+                <div className="ml-0 mr-auto max-w-[85%] rounded-[1.35rem] rounded-bl-md bg-white px-4 py-4 text-sm leading-7 text-foreground shadow-[0_8px_24px_rgba(70,52,24,0.05)]">
+                  <p>
+                    {visiblePhones.length
+                      ? `نأسف أن المشكلة لم تُحل بعد. فريق الدعم الفني في لوما جاهز لإكمال المساعدة معك، ويمكنك التواصل معه مباشرة عبر ${visiblePhones.length > 1 ? "الأرقام التالية:" : "الرقم التالي:"}`
+                      : "نأسف أن المشكلة لم تُحل بعد. فريق الدعم الفني في لوما جاهز لإكمال المساعدة معك."}
+                  </p>
                   {visiblePhones.length ? (
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2">
                       {visiblePhones.map((phone) => (
                         <a
                           key={phone}
                           href={phoneHref(phone)}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-foreground bg-foreground px-3 text-sm text-primary-foreground"
+                          dir="ltr"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#e6dcc8] bg-[#fbf8f3] px-4 text-sm text-foreground"
                         >
                           <Phone className="size-3.5" strokeWidth={1.5} />
                           {phone}
@@ -233,7 +237,9 @@ export function SupportChat() {
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-2 text-[13px] text-muted-foreground">رقم الدعم غير مضاف بعد في لوحة التحكم.</p>
+                    <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
+                      رقم الدعم الفني غير مضاف حاليًا في لوحة التحكم.
+                    </p>
                   )}
                 </div>
               )}
@@ -246,11 +252,12 @@ export function SupportChat() {
                 void send(draft);
               }}
             >
-              {canEscalate && !needsHuman && (
+              {canEscalate && !supportOpen && (
                 <button
                   type="button"
-                  className="mb-3 text-[13px] text-muted-foreground underline-offset-4 hover:underline"
-                  onClick={() => setNeedsHuman(true)}
+                  disabled={busy}
+                  className="mb-3 text-[13px] text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50"
+                  onClick={() => setSupportOpen(true)}
                 >
                   لم تُحل مشكلتي
                 </button>
