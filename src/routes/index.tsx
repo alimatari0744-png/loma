@@ -43,14 +43,14 @@ function HomePage() {
 
   return (
     <SiteShell>
-      <section className="mx-auto grid max-w-[1440px] md:min-h-[calc(100svh-104px)] md:grid-cols-[0.9fr_1.1fr]">
-        <div className="order-2 flex items-center px-6 py-14 md:order-1 md:px-10 lg:px-20">
-          <div className="@container w-full max-w-xl">
+      <section className="mx-auto grid max-w-[1440px] md:min-h-[calc(100svh-104px)] md:grid-cols-[1.25fr_0.9fr]">
+        <div className="order-2 flex items-center px-6 py-14 md:order-1 md:px-6 lg:px-10">
+          <div className="@container w-full">
             <div className="mb-6 flex items-center gap-3 text-[11px] font-semibold text-gold md:text-xs">
               <span className="h-px w-10 bg-gold" />
               {content.hero.eyebrow}
             </div>
-            <h1 className="whitespace-nowrap font-display text-[clamp(1.15rem,7.2cqi,2.85rem)] font-medium leading-none">
+            <h1 className="whitespace-nowrap font-display text-[clamp(1.15rem,7.2cqi,2.15rem)] font-medium leading-none md:text-[clamp(1.7rem,7.15cqi,3.6rem)]">
               {content.hero.title} {content.hero.titleLine2}
             </h1>
             <p className="mt-6 max-w-lg text-[15px] font-light leading-8 text-muted-foreground md:mt-8 md:text-lg md:leading-9">
