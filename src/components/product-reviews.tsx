@@ -64,7 +64,7 @@ export function ProductReviews({ productId, productName }: { productId: number; 
           <h2 className="mt-2 text-2xl font-semibold md:text-3xl">تقييمات {productName}</h2>
         </div>
         {productReviews.length > 0 && (
-          <div className="flex items-center gap-3 border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-3 rounded-full border border-border bg-card px-5 py-2.5">
             <span className="text-3xl font-semibold">{average}</span>
             <div>
               <StarRating value={Math.round(average)} readOnly />
@@ -77,19 +77,26 @@ export function ProductReviews({ productId, productName }: { productId: number; 
       <div className={canReview ? "grid gap-10 lg:grid-cols-[1.1fr_0.9fr]" : undefined}>
         <div className="space-y-4">
           {productReviews.length === 0 ? (
-            <div className="border border-border px-6 py-14 text-center">
-              <MessageCircle className="mx-auto mb-3 size-7 text-gold" strokeWidth={1.2} />
+            <div className="rounded-[1.5rem] border border-border px-6 py-14 text-center">
+              <span className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-[#f6e7c4] text-[#8c6232]">
+                <MessageCircle className="size-5" strokeWidth={1.5} />
+              </span>
               <p className="text-muted-foreground">لا توجد تقييمات بعد.</p>
             </div>
           ) : (
             productReviews.map((review) => (
-              <article key={review.id} className="border border-border bg-card px-5 py-5">
+              <article key={review.id} className="rounded-[1.5rem] border border-border bg-card px-5 py-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{review.authorName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(review.createdAt).toLocaleDateString("ar-SA")}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-full bg-[#f6e7c4] text-sm font-medium text-[#8c6232]">
+                      {review.authorName.trim().charAt(0) || "ل"}
+                    </span>
+                    <div>
+                      <p className="font-medium">{review.authorName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(review.createdAt).toLocaleDateString("ar-SA")}
+                      </p>
+                    </div>
                   </div>
                   <StarRating value={review.rating} readOnly size="sm" />
                 </div>
@@ -100,7 +107,7 @@ export function ProductReviews({ productId, productName }: { productId: number; 
         </div>
 
         {canReview && (
-          <form className="h-fit border border-border bg-card px-5 py-6" onSubmit={submit}>
+          <form className="h-fit rounded-[1.5rem] border border-border bg-card px-5 py-6" onSubmit={submit}>
             <h3 className="text-lg font-semibold">اكتب تقييمك</h3>
             <p className="mt-2 text-sm leading-7 text-muted-foreground">
               يظهر هذا النموذج مرة واحدة بعد طلبك لهذا المنتج.
@@ -111,14 +118,14 @@ export function ProductReviews({ productId, productName }: { productId: number; 
                 <StarRating value={rating} onChange={setRating} />
               </div>
               <Textarea
-                className="min-h-28 rounded-none"
+                className="min-h-28 rounded-2xl"
                 placeholder="كيف كانت تجربتك مع المنتج؟"
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
                 required
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" variant="luxury" className="h-11 w-full rounded-none" disabled={busy}>
+              <Button type="submit" variant="luxury" className="h-11 w-full rounded-full" disabled={busy}>
                 {busy ? "جارٍ النشر…" : "نشر التقييم"}
               </Button>
             </div>

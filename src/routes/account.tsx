@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { LogIn, LogOut, MapPin, Package, Shield, UserRound } from "lucide-react";
+import { LogIn, LogOut, MapPin, MessageSquare, Package, Shield, UserRound } from "lucide-react";
 import { SiteShell } from "@/components/site-shell";
 import { useCustomerAccount } from "@/components/customer-account-context";
 import { useSiteStore } from "@/components/site-store-context";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/products";
+import { loadAssistantChat } from "@/lib/support.functions";
+import { getSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -20,12 +22,13 @@ export const Route = createFileRoute("/account")({
   component: AccountPage,
 });
 
-type AccountTab = "overview" | "profile" | "orders" | "address" | "security";
+type AccountTab = "overview" | "profile" | "orders" | "questions" | "address" | "security";
 type GuestMode = "login" | "register" | "forgot";
 
 const tabs: { id: AccountTab; label: string; icon: typeof UserRound }[] = [
   { id: "overview", label: "حسابي", icon: UserRound },
   { id: "orders", label: "طلباتي", icon: Package },
+  { id: "questions", label: "أسئلتي", icon: MessageSquare },
   { id: "profile", label: "بياناتي", icon: UserRound },
   { id: "address", label: "العنوان", icon: MapPin },
   { id: "security", label: "الأمان", icon: Shield },
@@ -501,6 +504,8 @@ function AccountPage() {
             </form>
           )}
 
+          {tab === "questions" && <AccountQuestions />}
+
           {tab === "orders" && (
             <div className="mt-8">
               <h2 className="mb-6 text-lg font-semibold">طلباتي</h2>
@@ -522,6 +527,7 @@ function AccountPage() {
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {new Date(order.createdAt).toLocaleString("ar-SA")}
+                        {order.shippingCompany ? ` · ${order.shippingCompany}` : ""}
                       </p>
                       <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                         {order.items.map((item) => (
@@ -549,5 +555,65 @@ function AccountPage() {
         </div>
       </section>
     </SiteShell>
+  );
+}
+
+function AccountQuestions() {
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await getSupabase().auth.getSession();
+      const token = data.session?.access_token ?? "";
+      if (!token) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      const result = await loadAssistantChat({ data: { accessToken: token } });
+      if (!cancelled) {
+        setMessages(result.messages);
+        setReady(true);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const questions = messages.filter((message) => message.role === "user");
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-2 text-lg font-semibold">أسئلتي</h2>
+      <p className="mb-6 text-sm text-muted-foreground">الأسئلة التي أرسلتِها إلى لوما وهي مسجّلة في هذا الحساب.</p>
+      {!ready ? (
+        <p className="text-sm text-muted-foreground">جارٍ التحميل…</p>
+      ) : questions.length === 0 ? (
+        <div className="rounded-[1.5rem] border border-border px-6 py-14 text-center text-sm text-muted-foreground">
+          لا توجد أسئلة محفوظة بعد. افتحي لوما واسألي عن منتج أو عن طلبك.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {messages.map((message, index) => (
+            <article
+              key={`${message.role}-${index}`}
+              className={`max-w-[85%] px-4 py-3 ${
+                message.role === "user"
+                  ? "mr-0 ml-auto rounded-[1.35rem] rounded-br-md bg-foreground text-primary-foreground"
+                  : "ml-0 mr-auto rounded-[1.35rem] rounded-bl-md border border-border bg-card"
+              }`}
+            >
+              <p className={`text-xs ${message.role === "user" ? "text-primary-foreground/70" : "text-gold"}`}>
+                {message.role === "user" ? "سؤالك" : "لوما"}
+              </p>
+              <p className="mt-2 text-sm leading-7">{message.text}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

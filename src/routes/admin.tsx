@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSiteStore } from "@/components/site-store-context";
 import type { Product } from "@/lib/products";
 import { formatPrice } from "@/lib/products";
-import { emptyProduct, fileToDataUrl, type OrderStatus, type Review, type SiteContent } from "@/lib/site-data";
+import { emptyProduct, fileToDataUrl, orderStatuses, type OrderStatus, type Review, type SiteContent } from "@/lib/site-data";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -48,7 +48,7 @@ const tabs: { id: Tab; label: string; icon: typeof Package }[] = [
   { id: "images", label: "الصور", icon: ImageLucide },
 ];
 
-const statuses: OrderStatus[] = ["جديد", "قيد التجهيز", "تم الشحن", "مكتمل", "ملغي"];
+const statuses: OrderStatus[] = [...orderStatuses];
 const categories: Product["category"][] = ["مزيل المكياج", "الوسادات", "الباقات"];
 
 function AdminPage() {
@@ -228,6 +228,9 @@ function AdminPage() {
               onStatus={async (id, status) => {
                 await flashSave(await store.updateOrderStatus(id, status));
               }}
+              onShipping={async (id, shippingCompany) => {
+                await flashSave(await store.updateOrderShipping(id, shippingCompany));
+              }}
               onDelete={async (id) => {
                 if (!confirm("حذف هذا الطلب؟")) return;
                 await flashSave(await store.deleteOrder(id));
@@ -286,8 +289,10 @@ function pct(part: number, total: number) {
 function OverviewPanel() {
   const { products, orders, reviews, content } = useSiteStore();
   const activeOrders = orders.filter((order) => order.status !== "ملغي");
-  const newOrders = orders.filter((order) => order.status === "جديد").length;
-  const doneOrders = orders.filter((order) => order.status === "مكتمل" || order.status === "تم الشحن").length;
+  const newOrders = orders.filter((order) => order.status === "جديد" || order.status === "مسودة").length;
+  const doneOrders = orders.filter(
+    (order) => order.status === "مكتمل" || order.status === "تم الشحن" || order.status === "عند شركة الشحن",
+  ).length;
   const revenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
   const recent = orders.slice(0, 4);
   const completionItems = [
@@ -633,18 +638,23 @@ function ProductEditor({
 function OrdersPanel({
   orders,
   onStatus,
+  onShipping,
   onDelete,
 }: {
   orders: ReturnType<typeof useSiteStore>["orders"];
   onStatus: (id: string, status: OrderStatus) => void | Promise<void>;
+  onShipping: (id: string, shippingCompany: string) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }) {
   if (orders.length === 0) {
     return (
       <div className="space-y-5">
-        <PanelHeader title="الطلبات" subtitle="تظهر هنا عند إتمام الشراء من السلة." />
+        <PanelHeader
+          title="الطلبات"
+          subtitle="تظهر هنا عند إتمام الشراء. حساب الإدارة يضبط المرحلة وشركة الشحن، والمساعد يقرأها كما هي."
+        />
         <div className="border border-[#e6dcc8] bg-white/85 px-6 py-16 text-center text-sm text-muted-foreground">
-          لا توجد طلبات بعد.
+          لا توجد طلبات بعد. المراحل المتاحة: {statuses.join("، ")}.
         </div>
       </div>
     );
@@ -652,7 +662,10 @@ function OrdersPanel({
 
   return (
     <div className="space-y-5">
-      <PanelHeader title="الطلبات" subtitle={`${orders.length} طلب مسجّل.`} />
+      <PanelHeader
+        title="الطلبات"
+        subtitle={`${orders.length} طلب مسجّل. حالة كل طلب وشركة الشحن يضبطها حساب الإدارة فقط، ويقرأها المساعد كما هي.`}
+      />
       <div className="space-y-3">
         {orders.map((order) => (
           <article key={order.id} className="border border-[#e6dcc8] bg-white/85 px-5 py-5 shadow-[0_8px_30px_rgba(70,52,24,0.03)]">
@@ -685,12 +698,24 @@ function OrdersPanel({
                 value={order.status}
                 onChange={(e) => onStatus(order.id, e.target.value as OrderStatus)}
               >
+                {!statuses.includes(order.status) && <option value={order.status}>{order.status}</option>}
                 {statuses.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
                 ))}
               </select>
+              <Input
+                className="h-10 max-w-xs rounded-none"
+                defaultValue={order.shippingCompany ?? ""}
+                placeholder="شركة الشحن"
+                key={`${order.id}-${order.shippingCompany ?? ""}`}
+                onBlur={(event) => {
+                  const next = event.target.value.trim();
+                  if (next === (order.shippingCompany ?? "").trim()) return;
+                  void onShipping(order.id, next);
+                }}
+              />
               <Button
                 variant="ghost"
                 className="h-10 rounded-none text-muted-foreground hover:text-destructive"

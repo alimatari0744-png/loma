@@ -1,10 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { Order, SiteData } from "@/lib/site-data";
+import { createClient } from "@supabase/supabase-js";
+import { orderStatusMeaning, type Order, type SiteData } from "@/lib/site-data";
 import { supportPhones } from "@/lib/support";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
-type SupportInput = { messages: ChatMessage[] };
+type SupportInput = { messages: ChatMessage[]; accessToken?: string };
+
+type AccountIdentity = { id: string; phone: string; email: string };
+
+const CHAT_BUCKET = "loma-assistant";
 
 type SupportResult = {
   ok: boolean;
@@ -43,15 +48,29 @@ function mentionsPhone(text: string, phone: string) {
   return text.replace(/\D/g, "").includes(needle);
 }
 
-function matchingOrders(orders: Order[], transcript: string) {
-  const ids = [...transcript.matchAll(/ORD-\d+/gi)].map((match) => match[0].toUpperCase());
-  const byPhone = orders.filter((order) => mentionsPhone(transcript, order.customerPhone));
-  const byId = ids.length ? orders.filter((order) => ids.includes(order.id.toUpperCase())) : [];
+function samePhone(left: string, right: string) {
+  const a = lastDigits(left);
+  const b = lastDigits(right);
+  return a.length >= 8 && a === b;
+}
 
-  if (byId.length) {
-    return byId.filter((order) => mentionsPhone(transcript, order.customerPhone)).slice(0, 5);
+function ownedOrders(orders: Order[], transcript: string, account: AccountIdentity | null) {
+  return orders.filter((order) => {
+    const phoneMatch =
+      mentionsPhone(transcript, order.customerPhone) || Boolean(account && samePhone(order.customerPhone, account.phone));
+    const email = (order.customerEmail ?? "").trim().toLowerCase();
+    const emailMatch = Boolean(account?.email && email && email === account.email.trim().toLowerCase());
+    return phoneMatch || emailMatch;
+  });
+}
+
+function matchingOrders(orders: Order[], transcript: string, account: AccountIdentity | null) {
+  const ids = [...transcript.matchAll(/ORD-\d+/gi)].map((match) => match[0].toUpperCase());
+  const owned = ownedOrders(orders, transcript, account);
+  if (ids.length) {
+    return owned.filter((order) => ids.includes(order.id.toUpperCase())).slice(0, 5);
   }
-  return byPhone.slice(0, 5);
+  return owned.slice(0, 5);
 }
 
 function orderContext(orders: Order[]) {
@@ -61,7 +80,9 @@ function orderContext(orders: Order[]) {
       const items = order.items.map((item) => `${item.name} × ${item.quantity}`).join("، ");
       return [
         `رقم الطلب: ${order.id}`,
-        `الحالة: ${order.status}`,
+        `الحالة المضبوطة من لوحة التحكم: ${order.status}`,
+        `معنى الحالة: ${orderStatusMeaning[order.status] ?? "حالة غير معروفة، لا تخترعي تفسيرًا."}`,
+        `شركة الشحن: ${order.shippingCompany?.trim() || "غير مسجّلة في لوحة التحكم"}`,
         `تاريخ الإنشاء: ${order.createdAt}`,
         `المنتجات: ${items || "غير مذكورة"}`,
         `الإجمالي: ${order.total} ريال`,
@@ -73,12 +94,23 @@ function orderContext(orders: Order[]) {
 function storeContext(data: SiteData | null) {
   if (!data) return "تعذر تحميل بيانات المتجر.";
   const products = data.products
-    .map((product) => `${product.name} — ${product.size} — ${product.price} ريال — ${product.note}`)
+    .map((product) =>
+      [
+        `المنتج: ${product.name}`,
+        `الحجم: ${product.size}`,
+        `السعر: ${product.price} ريال`,
+        `التصنيف: ${product.category}`,
+        `الوصف: ${product.description}`,
+        `المحتويات: ${(product.contents ?? []).join("، ") || "غير مذكورة"}`,
+        `المميزات: ${(product.highlights ?? []).join("، ") || "غير مذكورة"}`,
+        `ملاحظة: ${product.note}`,
+      ].join(" | "),
+    )
     .join("\n");
   return [
     `البريد الظاهر في الموقع: ${data.content.footer.email}`,
     `أرقام الدعم: ${supportPhones(data.content.footer.phone).join("، ") || "غير مضافة"}`,
-    "المنتجات:",
+    "مواصفات المنتجات كما هي في المتجر:",
     products,
     "روتين الاستخدام:",
     data.content.ritual.step1Text,
@@ -89,8 +121,10 @@ function storeContext(data: SiteData | null) {
 function systemPrompt(data: SiteData | null, orders: Order[]) {
   return [
     "أنتِ مساعدة عملاء متجر لوما فقط. تتحدثين بالعربية، بهدوء واختصار، وبصيغة المؤنث.",
-    "مهمتك مساعدة العميلة في مشاكل الطلب والمنتجات والاستخدام: تأخر الطلب، حالة الطلب، طريقة الاستخدام، ومحتوى المنتجات.",
-    "لا تخترعي حالة طلب أو موعد توصيل أو سياسة استرجاع غير موجودة في البيانات.",
+    "مهمتك مساعدة العميلة في مشاكل الطلب والمنتجات والاستخدام: تأخر الطلب، حالة الطلب، طريقة الاستخدام، ومواصفات المنتجات.",
+    "إذا سُئلتِ مما يُصنع منتج أو عن مواصفاته، لخّصي الوصف والمحتويات والمميزات الموجودة فقط بلغة قصيرة. لا تخترعي مكوّنات أو خامات غير مذكورة. إذا لم تُذكر التركيبة، قولي إن المتاح هو الوصف والمحتويات المسجّلة فقط.",
+    "لا تخترعي حالة طلب أو اسم شركة شحن أو موعد توصيل أو سياسة استرجاع غير موجودة في البيانات.",
+    "إذا سألت عن التأخر أو أين الطلب، أجيب من الحالة المضبوطة في لوحة التحكم فقط: المسودة والتحضير والإعداد تعني أنه لم يصل شركة الشحن، وعند شركة الشحن أو تم الشحن تعني أنه خرج من لوما إلى الشركة المسجّلة.",
     "لا يوجد وعد زمني منشور للتوصيل. اشرحي الحالة الحالية فقط.",
     "إذا سألت عن طلب محدد ولم يظهر في البيانات المطابقة، اطلبي رقم الطلب الذي يبدأ بـ ORD ورقم الجوال المستخدم عند الشراء.",
     "إذا لم تستطيعي حل المشكلة، أو طلبت العميلة موظفًا، أو كان الموضوع طبيًا أو شكوى أو استرجاعًا أو دفعًا لا تستطيعين حسمه، اجعلي needsHuman بالقيمة true.",
@@ -144,6 +178,80 @@ async function askGemini(apiKey: string, system: string, messages: ChatMessage[]
   throw new Error(lastError);
 }
 
+function cleanMessages(messages: ChatMessage[]) {
+  return (Array.isArray(messages) ? messages : [])
+    .filter((message) => (message.role === "user" || message.role === "assistant") && message.text?.trim())
+    .slice(-40)
+    .map((message) => ({ role: message.role, text: message.text.trim().slice(0, 600) }));
+}
+
+function serviceClient() {
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!key) return null;
+  return createClient(getSupabaseUrl(), key);
+}
+
+async function accountFromToken(token: string): Promise<AccountIdentity | null> {
+  const anon = process.env.VITE_SUPABASE_ANON_KEY || "";
+  if (!token || !anon) return null;
+  const auth = createClient(getSupabaseUrl(), anon);
+  const { data, error } = await auth.auth.getUser(token);
+  if (error || !data.user) return null;
+  const meta = data.user.user_metadata ?? {};
+  let phone = String(meta.phone ?? "");
+  let email = data.user.email ?? String(meta.email ?? "");
+  const admin = serviceClient();
+  if (admin) {
+    const { data: profile } = await admin.from("profiles").select("phone,email").eq("id", data.user.id).maybeSingle();
+    if (profile?.phone) phone = String(profile.phone);
+    if (profile?.email) email = String(profile.email);
+  }
+  return { id: data.user.id, phone, email };
+}
+
+async function chatBucket() {
+  const admin = serviceClient();
+  if (!admin) return null;
+  const { data } = await admin.storage.listBuckets();
+  if (!(data ?? []).some((bucket) => bucket.name === CHAT_BUCKET)) {
+    const { error } = await admin.storage.createBucket(CHAT_BUCKET, { public: false });
+    if (error && !error.message.toLowerCase().includes("already")) return null;
+  }
+  return admin;
+}
+
+export const loadAssistantChat = createServerFn({ method: "POST" })
+  .validator((input: { accessToken: string }) => input)
+  .handler(async ({ data }) => {
+    const account = await accountFromToken(data.accessToken);
+    if (!account) return { messages: [] as ChatMessage[] };
+    const admin = await chatBucket();
+    if (!admin) return { messages: [] as ChatMessage[] };
+    const { data: file } = await admin.storage.from(CHAT_BUCKET).download(`${account.id}.json`);
+    if (!file) return { messages: [] as ChatMessage[] };
+    try {
+      const parsed = JSON.parse(await file.text()) as { messages?: ChatMessage[] };
+      return { messages: cleanMessages(parsed.messages ?? []) };
+    } catch {
+      return { messages: [] as ChatMessage[] };
+    }
+  });
+
+export const saveAssistantChat = createServerFn({ method: "POST" })
+  .validator((input: { accessToken: string; messages: ChatMessage[] }) => input)
+  .handler(async ({ data }) => {
+    const account = await accountFromToken(data.accessToken);
+    if (!account) return { ok: false as const };
+    const admin = await chatBucket();
+    if (!admin) return { ok: false as const };
+    const messages = cleanMessages(data.messages);
+    const { error } = await admin.storage.from(CHAT_BUCKET).upload(`${account.id}.json`, JSON.stringify({ messages }), {
+      upsert: true,
+      contentType: "application/json",
+    });
+    return { ok: !error };
+  });
+
 function parseAnswer(raw: string) {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
@@ -174,7 +282,8 @@ export const askSupport = createServerFn({ method: "POST" })
     }
 
     const transcript = messages.map((message) => message.text).join("\n");
-    const orders = matchingOrders(store?.orders ?? [], transcript);
+    const account = await accountFromToken(data.accessToken ?? "");
+    const orders = matchingOrders(store?.orders ?? [], transcript, account);
     const fallback = phones.length
       ? "لم أستطع حل هذه المشكلة. يمكنك التواصل مع الدعم عبر الرقم الظاهر بالأسفل."
       : "لم أستطع حل هذه المشكلة، ورقم الدعم غير مضاف في لوحة التحكم بعد.";

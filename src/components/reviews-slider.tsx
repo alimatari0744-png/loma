@@ -27,7 +27,7 @@ export function ReviewsSlider() {
     <section className="bg-[#f7f2e9] px-5 py-20 md:px-10 md:py-24 lg:px-14">
       <div className="mx-auto max-w-[820px] text-center">
         <h2 className="text-3xl font-semibold md:text-5xl">ماذا يقول عملاء لوما</h2>
-        <div className="relative mt-10 min-h-[220px] overflow-hidden border border-[#e6dcc8] bg-white/80 px-6 py-10 md:px-12">
+        <div className="relative mt-10 min-h-[220px] overflow-hidden rounded-[2rem] border border-[#e6dcc8] bg-white/80 px-6 py-10 shadow-[0_18px_50px_rgba(70,52,24,0.06)] md:px-12">
           {pinned.map((item, itemIndex) => (
             <blockquote
               key={item.id}
@@ -37,7 +37,9 @@ export function ReviewsSlider() {
                   : "pointer-events-none absolute inset-0 translate-y-4 opacity-0"
               }`}
             >
-              <Quote className="mx-auto mb-5 size-8 text-gold" strokeWidth={1.2} />
+              <span className="mx-auto mb-5 grid size-12 place-items-center rounded-full bg-[#f6e7c4] text-[#8c6232]">
+                <Quote className="size-5" strokeWidth={1.5} />
+              </span>
               <div className="flex justify-center">
                 <StarRating value={item.rating} readOnly />
               </div>
@@ -56,7 +58,7 @@ export function ReviewsSlider() {
                 key={item.id}
                 type="button"
                 onClick={() => setIndex(itemIndex)}
-                className={`h-1.5 transition-all ${
+                className={`h-1.5 rounded-full transition-all ${
                   itemIndex === index ? "w-8 bg-gold" : "w-3 bg-[#e0d4c0]"
                 }`}
                 aria-label={`عرض تقييم ${itemIndex + 1}`}

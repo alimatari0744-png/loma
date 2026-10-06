@@ -50,16 +50,14 @@ function HomePage() {
               <span className="h-px w-10 bg-gold" />
               {content.hero.eyebrow}
             </div>
-            <h1 className="text-[clamp(2.75rem,5.5vw,5.6rem)] font-semibold leading-[1.18]">
-              {content.hero.title}
-              <br />
-              {content.hero.titleLine2}
+            <h1 className="font-display text-[clamp(1.65rem,5.6vw,4.6rem)] font-medium leading-none">
+              {content.hero.title} {content.hero.titleLine2}
             </h1>
             <p className="mt-6 max-w-lg text-[15px] font-light leading-8 text-muted-foreground md:mt-8 md:text-lg md:leading-9">
               {content.hero.subtitle}
             </p>
             <div className="mt-8 flex flex-wrap gap-3 md:mt-10">
-              <Button asChild variant="luxury" size="luxury" className="group rounded-none px-8">
+              <Button asChild variant="luxury" size="luxury" className="group rounded-full px-8">
                 <Link to="/products">
                   {content.hero.cta}{" "}
                   <ArrowLeft className="transition-transform group-hover:-translate-x-1" />
@@ -100,18 +98,18 @@ function HomePage() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
-                variant="luxuryOutline"
+                variant="ghost"
                 size="icon"
-                className="rounded-none"
+                className="border-0 bg-transparent shadow-none hover:bg-transparent"
                 onClick={() => scrollProducts(1)}
                 aria-label="المنتجات السابقة"
               >
                 <ArrowRight />
               </Button>
               <Button
-                variant="luxuryOutline"
+                variant="ghost"
                 size="icon"
-                className="rounded-none"
+                className="border-0 bg-transparent shadow-none hover:bg-transparent"
                 onClick={() => scrollProducts(-1)}
                 aria-label="المنتجات التالية"
               >
@@ -133,7 +131,7 @@ function HomePage() {
             ))}
             <Link
               to="/products"
-              className="group flex aspect-[3/4] w-[calc(50%-6px)] shrink-0 snap-start flex-col items-center justify-center px-4 text-center sm:w-[min(42vw,240px)] sm:px-8 md:w-[31%]"
+              className="group flex aspect-[3/4] w-[calc(50%-6px)] shrink-0 snap-start flex-col items-center justify-center rounded-[1.35rem] bg-background px-4 text-center sm:w-[min(42vw,240px)] sm:px-8 md:w-[31%]"
             >
               <span className="mb-4 grid size-11 place-items-center rounded-full border border-gold text-gold sm:mb-6 sm:size-14">
                 <ArrowLeft />

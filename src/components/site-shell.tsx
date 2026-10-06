@@ -18,10 +18,11 @@ const links = [
   { label: "عن لوما", to: "/about" as const },
 ];
 
-export function BrandMark({ compact = false }: { compact?: boolean }) {
+export function BrandMark({ compact = false, centerWord = false }: { compact?: boolean; centerWord?: boolean }) {
   const { content } = useSiteStore();
+  const imageClass = compact ? "size-6" : "size-7 md:size-8";
   return (
-    <span className="inline-flex items-center gap-2" dir="ltr" aria-label="LOMA">
+    <span className={`inline-flex items-center ${centerWord ? "relative" : "gap-2"}`} dir="ltr" aria-label="LOMA">
       <span
         className={`font-brand font-semibold tracking-[0.2em] leading-none ${
           compact ? "text-[1.35rem]" : "text-[1.55rem] md:text-[1.75rem]"
@@ -32,7 +33,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
       <img
         src={content.images.logo}
         alt=""
-        className={compact ? "size-6 object-contain" : "size-7 object-contain md:size-8"}
+        className={`object-contain ${imageClass} ${centerWord ? "absolute top-1/2 left-full ml-2 -translate-y-1/2" : ""}`}
       />
     </span>
   );
@@ -317,7 +318,7 @@ function SiteHeader() {
             to="/"
             className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
           >
-            <BrandMark />
+            <BrandMark centerWord />
           </Link>
 
           <div className="flex items-center gap-1">

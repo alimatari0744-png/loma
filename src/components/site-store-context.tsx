@@ -48,6 +48,7 @@ type SiteStoreValue = {
   patchContent: (patch: Partial<SiteContent>) => Promise<PersistResult>;
   addOrder: (order: Omit<Order, "id" | "createdAt" | "status"> & { status?: OrderStatus }) => Promise<Order>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<PersistResult>;
+  updateOrderShipping: (id: string, shippingCompany: string) => Promise<PersistResult>;
   deleteOrder: (id: string) => Promise<PersistResult>;
   addReview: (
     input: Omit<Review, "id" | "createdAt" | "pinned">,
@@ -205,7 +206,8 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
         const order: Order = {
           id: `ORD-${Date.now()}`,
           createdAt: new Date().toISOString(),
-          status: orderInput.status ?? "جديد",
+          status: orderInput.status ?? "مسودة",
+          shippingCompany: "",
           customerName: orderInput.customerName,
           customerPhone: orderInput.customerPhone,
           customerEmail: orderInput.customerEmail,
@@ -220,6 +222,13 @@ export function SiteStoreProvider({ children }: { children: ReactNode }) {
         update((current) => ({
           ...current,
           orders: current.orders.map((order) => (order.id === id ? { ...order, status } : order)),
+        })),
+      updateOrderShipping: (id, shippingCompany) =>
+        update((current) => ({
+          ...current,
+          orders: current.orders.map((order) =>
+            order.id === id ? { ...order, shippingCompany: shippingCompany.trim() } : order,
+          ),
         })),
       deleteOrder: (id) =>
         update((current) => ({

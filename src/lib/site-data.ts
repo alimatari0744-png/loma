@@ -2,7 +2,21 @@ import { media, resolveMediaUrl } from "@/lib/media";
 import type { Product } from "@/lib/products";
 import { defaultProducts } from "@/lib/products";
 
-export type OrderStatus = "جديد" | "قيد التجهيز" | "تم الشحن" | "مكتمل" | "ملغي";
+export const orderStatuses = ["مسودة", "قيد التحضير", "قيد الإعداد", "عند شركة الشحن", "تم الشحن", "مكتمل", "ملغي"] as const;
+
+export type OrderStatus = (typeof orderStatuses)[number] | "جديد" | "قيد التجهيز";
+
+export const orderStatusMeaning: Record<OrderStatus, string> = {
+  مسودة: "الطلب ما زال مسودة داخل لوما ولم يُسلّم لشركة الشحن.",
+  جديد: "الطلب ما زال مسودة داخل لوما ولم يُسلّم لشركة الشحن.",
+  "قيد التحضير": "الطلب قيد التحضير داخل لوما ولم يخرج إلى شركة الشحن.",
+  "قيد التجهيز": "الطلب قيد التحضير داخل لوما ولم يخرج إلى شركة الشحن.",
+  "قيد الإعداد": "المنتج ما زال في مرحلة الإعداد داخل لوما ولم يُسلّم لشركة الشحن.",
+  "عند شركة الشحن": "تم تسليم الطلب لشركة الشحن المسجّلة في لوحة التحكم وما زال عندها.",
+  "تم الشحن": "شركة الشحن استلمت الطلب وهو في الطريق.",
+  مكتمل: "اكتمل تسليم الطلب.",
+  ملغي: "أُلغي الطلب ولم يُشحن.",
+};
 
 export type OrderItem = {
   key: number;
@@ -22,6 +36,7 @@ export type Order = {
   customerEmail?: string;
   customerNote: string;
   status: OrderStatus;
+  shippingCompany?: string;
   total: number;
   items: OrderItem[];
 };
